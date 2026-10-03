@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Morsi · app confusa (Lezione 01)</title>
+<!--
+  =====================================================================
+  APP CONFUSA — Lezione 01: "Perché un'app funziona"
+  Corso UX/UI Design · prototipo didattico con 4 DIFETTI DELIBERATI
+  =====================================================================
+  "Morsi" è un'app di food delivery inventata. Funziona, ma contiene
+  quattro difetti messi apposta, da far trovare alla classe:
+
+    DIFETTO 1 · ONBOARDING SOVRACCARICO     (cerca: "DIFETTO 1")
+    DIFETTO 2 · PERMESSI SENZA SPIEGAZIONE  (cerca: "DIFETTO 2")
+    DIFETTO 3 · ERRORE INCOMPRENSIBILE      (cerca: "DIFETTO 3")
+    DIFETTO 4 · CONFERMA CHE SPARISCE       (cerca: "DIFETTO 4")
+
+  Ogni difetto è commentato nel punto del codice in cui è realizzato
+  (CSS, HTML generato e JavaScript), con la correzione possibile.
+
+  Percorso in cui si incontrano, nell'ordine:
+    onboarding (1) → permessi (2) → home → ristorante → carrello
+    → "Ordina e paga" → conferma lampo (4) → "ordine in corso" → errore (3)
+
+  Un solo file: CSS e JavaScript inline, nessuna risorsa esterna.
+  Responsive da 320px a 1200px.
+  =====================================================================
+-->
+<style>
+/* ---------- Token ---------- */
+:root{
+  --pagina:#ECE7DF;        /* sfondo fuori dal telefono */
+  --inchiostro:#1F1B16;
+  --tenue:#756B5E;
+  --carta:#FBF6EF;         /* sfondo dell'app */
+  --bianco:#FFFFFF;
+  --linea:#E6DCCD;
+  --morso:#D9481F;         /* colore del marchio */
+  --morso-scuro:#B43A17;
+  --ok:#2C7A4B;
+  --font:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --font-titoli:Georgia,"Times New Roman",serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--pagina);color:var(--inchiostro);font:15px/1.45 var(--font)}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,a:focus-visible{outline:3px solid #2B5FD9;outline-offset:2px}
+
+/* ---------- Impaginazione esterna (320 → 1200px) ---------- */
+.pagina{min-height:100%;display:grid;gap:24px;align-items:center;justify-items:center;padding:24px 16px;
+  grid-template-columns:minmax(0,1fr)}
+.telefono{width:min(100%,390px);height:min(780px,calc(100dvh - 48px));min-height:520px;background:#14110E;border-radius:44px;padding:10px;
+  box-shadow:0 30px 60px -28px rgba(40,25,10,.6)}
+.schermo{position:relative;height:100%;border-radius:34px;overflow:hidden;background:var(--carta);display:flex;flex-direction:column}
+.scheda{width:min(100%,390px);background:var(--bianco);border:1px solid var(--linea);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px}
+.scheda h1{margin:0;font:700 22px/1.15 var(--font-titoli)}
+.scheda p{margin:0;color:var(--tenue);font-size:14px}
+.scheda ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:14.5px}
+.scheda .etichetta{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--tenue)}
+.salti{display:flex;flex-wrap:wrap;gap:6px}
+.salti button{border:1px solid var(--linea);background:var(--carta);border-radius:999px;padding:7px 12px;font-size:13px}
+.salti button:hover{border-color:var(--tenue)}
+.salti .ricomincia{background:var(--inchiostro);border-color:var(--inchiostro);color:#fff;font-weight:600}
+
+/* da 860px in su: telefono e scheda affiancati */
+@media (min-width:860px){
+  .pagina{grid-template-columns:390px minmax(280px,380px);justify-content:center;gap:48px;padding:32px}
+  .telefono{width:390px}
+  .scheda{width:100%}
+}
+/* telefoni veri: l'app occupa tutto lo schermo, la scheda scende sotto */
+@media (max-width:480px){
+  .pagina{padding:0 0 24px;gap:16px;align-items:start}
+  .telefono{width:100%;height:100dvh;min-height:480px;border-radius:0;padding:0;box-shadow:none}
+  .schermo{border-radius:0}
+  .scheda{width:calc(100% - 32px)}
+}
+
+/* ---------- Elementi comuni dell'app ---------- */
+.testata{flex:none;display:flex;align-items:center;gap:8px;padding:14px 16px 10px;min-height:56px}
+.testata h2{flex:1;margin:0;font:700 19px/1.2 var(--font-titoli);text-align:center}
+.tondo{flex:none;width:38px;height:38px;border:0;border-radius:50%;background:var(--bianco);display:grid;place-items:center;font-size:20px;line-height:1}
+.spazio{flex:none;width:38px}
+.corpo{flex:1;overflow-y:auto;padding:4px 16px 18px;display:flex;flex-direction:column;gap:12px}
+.barra{flex:none;padding:10px 16px 16px;border-top:1px solid var(--linea);background:var(--carta)}
+.bottone{width:100%;border:0;border-radius:14px;background:var(--morso);color:#fff;font-weight:700;font-size:16px;padding:14px 16px;display:flex;justify-content:space-between;gap:10px}
+.bottone:active{background:var(--morso-scuro)}
+.bottone[disabled]{opacity:.7;cursor:progress}
+.bottone.centro{justify-content:center}
+.nav{flex:none;display:flex;border-top:1px solid var(--linea);background:var(--bianco)}
+.nav button{flex:1;border:0;background:transparent;padding:9px 4px 12px;font-size:11.5px;color:var(--tenue);display:flex;flex-direction:column;align-items:center;gap:2px}
+.nav button b{font-size:19px;font-weight:400;line-height:1}
+.nav button.attivo{color:var(--morso);font-weight:700}
+
+/* home */
+.indirizzo{padding:16px 16px 8px}
+.indirizzo small{display:block;color:var(--tenue);font-size:12px}
+.indirizzo strong{font:700 20px/1.2 var(--font-titoli)}
+.ordine-in-corso{border:0;width:100%;text-align:left;background:var(--inchiostro);color:#fff;border-radius:14px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;font-weight:600}
+.locale{border:0;width:100%;text-align:left;background:var(--bianco);border-radius:16px;padding:0;overflow:hidden;box-shadow:0 1px 0 var(--linea)}
+.locale .foto{height:84px;background:var(--c);display:flex;align-items:flex-end;padding:10px 12px;color:#fff;font:700 26px/1 var(--font-titoli)}
+.locale .dati{padding:10px 12px 12px;display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.locale .dati b{font-size:15.5px}
+.locale .dati span{color:var(--tenue);font-size:12.5px;white-space:nowrap}
+.locale .dati small{display:block;color:var(--tenue);font-size:12.5px;font-weight:400}
+
+/* menu del locale */
+.piatto{background:var(--bianco);border-radius:14px;padding:12px;display:flex;gap:10px;align-items:center}
+.piatto div{flex:1;min-width:0}
+.piatto b{display:block}
+.piatto small{color:var(--tenue);font-size:12.5px;display:block}
+.piatto .prezzo{font-weight:700;margin-top:4px;font-size:14px}
+.piu{flex:none;width:36px;height:36px;border-radius:50%;border:0;background:var(--morso);color:#fff;font-size:22px;line-height:1;position:relative}
+.piu i{position:absolute;top:-5px;right:-5px;min-width:19px;height:19px;border-radius:10px;background:var(--inchiostro);color:#fff;font:700 11px/19px var(--font);font-style:normal;padding:0 4px}
+
+/* carrello */
+.riga{display:flex;justify-content:space-between;gap:10px;padding:10px 2px;border-bottom:1px solid var(--linea)}
+.riga.totale{border:0;font-weight:700;font-size:17px}
+.vuoto{text-align:center;color:var(--tenue);padding:48px 12px}
+
+/* avviso generico dentro l'app (es. "sezione non inclusa") */
+.avviso{position:absolute;left:14px;right:14px;bottom:76px;background:var(--inchiostro);color:#fff;border-radius:12px;padding:11px 14px;font-size:13.5px;z-index:5}
+
+/* =====================================================================
+   DIFETTO 1 · ONBOARDING SOVRACCARICO — parte CSS
+   ---------------------------------------------------------------------
+   Cosa è sbagliato (apposta):
+   - testo a 12px, giustificato, senza gerarchia: un muro di parole;
+   - nessuna immagine o frase che dica "ordina cibo a domicilio";
+   - l'unico elemento con forte peso visivo (.storia) NON fa andare avanti;
+   - il vero comando per proseguire (.prosegui) è 11px, grigio chiaro su
+     fondo chiaro (contrasto circa 1,5:1), in fondo allo scroll, e non ha
+     l'aspetto di un bottone.
+   Come si corregge: una frase che dice cosa fa l'app, un'immagine,
+   un solo bottone primario ben visibile ("Inizia"), e "Salta".
+   ===================================================================== */
+.onb{flex:1;overflow-y:auto;padding:22px 20px 18px}
+.onb h2{margin:0 0 10px;font:700 15px/1.3 var(--font);text-transform:uppercase;letter-spacing:.02em}
+.onb p{margin:0 0 9px;font-size:12px;line-height:1.38;text-align:justify;color:#3b352d}
+.onb .storia{display:block;width:100%;border:0;border-radius:14px;background:var(--morso);color:#fff;font-weight:700;font-size:16px;padding:14px;margin:14px 0}
+.onb .prosegui{display:block;margin:26px 0 4px auto;border:0;background:transparent;padding:0;
+  font-size:11px;color:#CFC6B8;text-decoration:none}
+
+/* =====================================================================
+   DIFETTO 2 · PERMESSI SENZA SPIEGAZIONE — parte CSS
+   La finestra imita un avviso di sistema. Lo stile è corretto: il difetto
+   sta in ciò che MANCA (vedi il commento nel JavaScript).
+   ===================================================================== */
+.velo{position:absolute;inset:0;background:rgba(20,15,10,.5);display:grid;place-items:center;padding:28px;z-index:10}
+.sistema{width:100%;max-width:280px;background:#F4F2EF;border-radius:16px;overflow:hidden;text-align:center}
+.sistema p{margin:0;padding:22px 18px;font-weight:700;font-size:16px;line-height:1.3}
+.sistema div{display:flex;border-top:1px solid #D4D0CA}
+.sistema button{flex:1;border:0;background:transparent;padding:13px 6px;font-size:15.5px;color:#1763CF}
+.sistema button+button{border-left:1px solid #D4D0CA;font-weight:700}
+
+/* =====================================================================
+   DIFETTO 3 · ERRORE INCOMPRENSIBILE — parte CSS
+   Schermo intero, solo un codice. Nessun bottone, nessuna freccia
+   indietro, nessuna barra di navigazione: non c'è via d'uscita.
+   ===================================================================== */
+.errore{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:#fff;text-align:center;padding:24px}
+.errore strong{font:700 34px/1 var(--font)}
+.errore code{font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;color:#9a9a9a}
+
+/* =====================================================================
+   DIFETTO 4 · CONFERMA CHE SPARISCE — parte CSS
+   L'animazione dura quanto il messaggio resta a schermo (vedi la
+   costante DURATA_CONFERMA_MS nel JavaScript): compare e sfuma subito.
+   ===================================================================== */
+.conferma{position:absolute;inset:0;background:var(--ok);color:#fff;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:28px;
+  animation:lampo var(--durata,900ms) ease-in forwards}
+.conferma h3{margin:0;font:700 26px/1.1 var(--font-titoli)}
+.conferma p{margin:0;font-size:14.5px;line-height:1.4}
+.conferma .codice{font:700 28px/1 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.3em;margin-top:6px}
+@keyframes lampo{0%{opacity:0}12%{opacity:1}70%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.conferma{animation:none}}
+</style>
+</head>
+<body>
+
+<div class="pagina">
+  <div class="telefono"><div class="schermo" id="schermo" aria-live="polite"></div></div>
+
+  <!-- Scheda fuori dall'app: consegna per la classe e comandi per il docente.
+       NON fa parte dell'app e non contiene difetti. -->
+  <aside class="scheda">
+    <span class="etichetta">Lezione 01 · app da analizzare</span>
+    <h1>Morsi, cibo a domicilio</h1>
+    <p>Usate l'app come fareste con una appena scaricata e provate a fare queste tre cose. Annotate ogni momento in cui esitate.</p>
+    <ol>
+      <li>Capire cosa fa l'app e arrivare alla lista dei locali.</li>
+      <li>Ordinare una piadina da “Da Nilde”.</li>
+      <li>Scoprire a che ora arriva l'ordine.</li>
+    </ol>
+    <span class="etichetta">Per il docente</span>
+    <div class="salti">
+      <button class="ricomincia" data-salto="inizio">Ricomincia da capo</button>
+      <button data-salto="permessi">Vai ai permessi</button>
+      <button data-salto="carrello">Vai al carrello</button>
+      <button data-salto="stato">Vai allo stato dell'ordine</button>
+    </div>
+  </aside>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ---------- Dati (inventati) ---------- */
+  var LOCALI = [
+    { id: 'nilde', nome: 'Da Nilde', tipo: 'Piadineria romagnola', tempo: '20–30 min', colore: '#B8612B', menu: [
+      { n: 'Piadina crudo e squacquerone', d: 'Con rucola', p: 7.50 },
+      { n: 'Piadina alle erbe e sardoncini', d: 'Erbe di campo saltate', p: 8.00 },
+      { n: 'Crescione zucca e patate', d: 'Chiuso e cotto sul testo', p: 6.50 },
+      { n: 'Acqua naturale 50 cl', d: '', p: 1.50 } ] },
+    { id: 'lanterna', nome: 'Wok Lanterna', tipo: 'Cucina cinese', tempo: '30–40 min', colore: '#8E2F3C', menu: [
+      { n: 'Ravioli al vapore (6 pz)', d: 'Maiale e cavolo', p: 6.00 },
+      { n: 'Spaghetti di riso saltati', d: 'Verdure e uova', p: 8.50 },
+      { n: 'Pollo alle mandorle', d: 'Con riso bianco', p: 9.50 } ] },
+    { id: 'forno', nome: 'Forno Bruciato', tipo: 'Pizza al taglio', tempo: '25–35 min', colore: '#3F3A34', menu: [
+      { n: 'Margherita', d: 'Trancio doppio', p: 5.00 },
+      { n: 'Patate e rosmarino', d: 'Trancio doppio', p: 5.50 },
+      { n: 'Mortadella e pistacchio', d: 'Trancio doppio', p: 7.00 } ] },
+    { id: 'verde', nome: 'Verde Crudo', tipo: 'Bowl e insalate', tempo: '15–25 min', colore: '#4D7A45', menu: [
+      { n: 'Bowl salmone e avocado', d: 'Riso, edamame, sesamo', p: 11.00 },
+      { n: 'Insalata di farro', d: 'Ceci, feta, pomodorini', p: 8.50 } ] }
+  ];
+  var CONSEGNA = 2.50;
+
+  /* ---------- Stato ---------- */
+  var S;
+  var timer = [];
+  function nuovoStato() {
+    return { schermata: 'onboarding', storia: false, permesso: 0, locale: null,
+             carrello: [], paga: false, conferma: null, ordine: false, avviso: '' };
+  }
+  function dopo(fn, ms) { timer.push(setTimeout(fn, ms)); }
+  function azzeraTimer() { timer.forEach(clearTimeout); timer = []; }
+
+  var schermo = document.getElementById('schermo');
+  function euro(n) { return '€' + n.toFixed(2).replace('.', ','); }
+  function trovaLocale(id) { return LOCALI.filter(function (l) { return l.id === id; })[0]; }
+  function pezzi() { return S.carrello.reduce(function (a, r) { return a + r.q; }, 0); }
+  function subtotale() { return S.carrello.reduce(function (a, r) { return a + r.q * r.p; }, 0); }
+  function quantita(nome) { var r = S.carrello.filter(function (x) { return x.n === nome; })[0]; return r ? r.q : 0; }
+
+  /* ---------- Schermate ---------- */
+  var VISTE = {};
+
+  /* ===================================================================
+     DIFETTO 1 · ONBOARDING SOVRACCARICO — contenuto
+     -------------------------------------------------------------------
+     Cosa è sbagliato (apposta):
+     - quattro paragrafi di linguaggio aziendale: in nessun punto si legge
+       "ordina da mangiare e te lo portiamo a casa";
+     - il bottone arancione grande ("Scopri la nostra storia") attira il
+       tocco ma aggiunge ALTRO testo invece di far proseguire;
+     - per andare avanti bisogna scorrere fino in fondo e trovare la
+       parola "prosegui", piccola e quasi invisibile (classe .prosegui).
+     Principi: carico cognitivo, gerarchia visiva, signifier.
+     Correzione: un titolo che dice cosa fa l'app, tre parole per
+     schermata, un bottone primario "Inizia" sempre visibile, più "Salta".
+     =================================================================== */
+  VISTE.onboarding = function () {
+    return '<div class="onb">' +
+      '<h2>Benvenuto nell’ecosistema Morsi S.r.l. per l’esperienza gastronomica di prossimità</h2>' +
+      '<p>Morsi nasce nel 2019 dall’incontro tra competenze logistiche, sensibilità territoriale e una visione integrata della filiera del gusto, con l’obiettivo di abilitare nuove modalità di relazione tra operatori del settore ristorativo e comunità urbane di riferimento, valorizzando al contempo le eccellenze locali e i processi di innovazione sostenibile.</p>' +
+      '<p>La nostra piattaforma multicanale consente agli stakeholder di accedere a un ventaglio di soluzioni modulari, scalabili e interoperabili, progettate secondo i più elevati standard qualitativi e in piena conformità con le normative vigenti in materia di sicurezza alimentare, tracciabilità e trattamento dei dati personali ai sensi del Regolamento (UE) 2016/679.</p>' +
+      '<p>Attraverso un algoritmo proprietario di ottimizzazione dei flussi, Morsi garantisce l’allineamento dinamico tra domanda e offerta, riducendo le inefficienze distributive e massimizzando il valore percepito lungo l’intero ciclo di vita dell’interazione, dalla fase di discovery fino al post-fruizione.</p>' +
+      '<button class="storia" data-a="storia">Scopri la nostra storia</button>' +
+      (S.storia ?
+        '<p>Fondata da tre soci provenienti dal mondo della consulenza, Morsi ha chiuso il primo round di finanziamento nel 2021 e ha progressivamente esteso la propria presenza a undici capoluoghi, consolidando partnership strategiche con oltre quattrocento esercenti convenzionati e ottenendo la certificazione di qualità ISO 9001.</p>' +
+        '<p>La nostra missione è generare impatto positivo attraverso un modello di crescita inclusivo, che mette al centro le persone, i territori e la cultura della condivisione.</p>' : '') +
+      '<p>Proseguendo dichiari di aver preso visione dell’informativa, dei termini di servizio, delle condizioni particolari applicabili ai singoli esercenti e della policy relativa ai cookie tecnici, analitici e di profilazione, nonché di accettare le eventuali modifiche che potranno essere apportate unilateralmente.</p>' +
+      /* ↓ DIFETTO 1: l'unico comando che fa andare avanti. */
+      '<button class="prosegui" data-a="prosegui">prosegui</button>' +
+      '</div>';
+  };
+
+  /* ===================================================================
+     DIFETTO 2 · PERMESSI SENZA SPIEGAZIONE
+     -------------------------------------------------------------------
+     Cosa è sbagliato (apposta):
+     - appena finito l'onboarding compaiono DUE richieste di sistema una
+       dopo l'altra (posizione, poi notifiche), sopra uno schermo vuoto;
+     - nessuna delle due dice A COSA SERVE il permesso: manca la riga di
+       spiegazione sotto il titolo e manca una schermata che prepari la
+       richiesta ("Ci serve la posizione per mostrarti i locali vicini");
+     - la richiesta arriva prima che l'utente abbia visto qualcosa
+       dell'app, quindi non ha elementi per decidere.
+     Principi: controllo dell'utente, fiducia, momento giusto.
+     Correzione: chiedere la posizione quando serve (alla scelta
+     dell'indirizzo) e le notifiche dopo il primo ordine ("Vuoi sapere
+     quando arriva il rider?"), sempre con il motivo scritto.
+     Nota: le finestre sono simulate, non chiedono permessi veri.
+     =================================================================== */
+  VISTE.permessi = function () {
+    var testo = S.permesso === 0
+      ? '“Morsi” vuole usare la tua posizione'
+      : '“Morsi” vuole inviarti notifiche';
+    return '<div class="velo"><div class="sistema" role="alertdialog" aria-label="Richiesta di permesso">' +
+      '<p>' + testo + '</p>' +
+      /* ↑ DIFETTO 2: qui manca il perché. */
+      '<div><button data-a="permesso" data-v="no">Non consentire</button>' +
+      '<button data-a="permesso" data-v="si">Consenti</button></div>' +
+      '</div></div>';
+  };
+
+  VISTE.home = function () {
+    var h = '<div class="indirizzo"><small>Consegna a</small><strong>Via dei Mille 12</strong></div><div class="corpo">';
+    if (S.ordine) {
+      h += '<button class="ordine-in-corso" data-a="stato"><span>1 ordine in corso</span><span>›</span></button>';
+    }
+    h += LOCALI.map(function (l) {
+      return '<button class="locale" data-a="locale" data-v="' + l.id + '">' +
+        '<div class="foto" style="--c:' + l.colore + '">' + l.nome + '</div>' +
+        '<div class="dati"><b>' + l.nome + '<small>' + l.tipo + '</small></b><span>' + l.tempo + '</span></div></button>';
+    }).join('');
+    return h + '</div>' + navigazione('home');
+  };
+
+  VISTE.locale = function () {
+    var l = trovaLocale(S.locale);
+    var h = '<div class="testata"><button class="tondo" data-a="home" aria-label="Indietro">‹</button><h2>' + l.nome + '</h2><span class="spazio"></span></div><div class="corpo">';
+    h += l.menu.map(function (m, i) {
+      var q = quantita(m.n);
+      return '<div class="piatto"><div><b>' + m.n + '</b>' + (m.d ? '<small>' + m.d + '</small>' : '') +
+        '<span class="prezzo">' + euro(m.p) + '</span></div>' +
+        '<button class="piu" data-a="aggiungi" data-v="' + i + '" aria-label="Aggiungi ' + m.n + '">+' + (q ? '<i>' + q + '</i>' : '') + '</button></div>';
+    }).join('');
+    h += '</div>';
+    if (pezzi()) {
+      h += '<div class="barra"><button class="bottone" data-a="carrello"><span>Vedi carrello · ' + pezzi() + '</span><span>' + euro(subtotale()) + '</span></button></div>';
+    }
+    return h;
+  };
+
+  VISTE.carrello = function () {
+    var h = '<div class="testata"><button class="tondo" data-a="indietro-carrello" aria-label="Indietro">‹</button><h2>Carrello</h2><span class="spazio"></span></div>';
+    if (!pezzi()) {
+      return h + '<div class="corpo"><p class="vuoto">Il carrello è vuoto.</p></div>' + navigazione('');
+    }
+    h += '<div class="corpo"><div>' + S.carrello.map(function (r) {
+      return '<div class="riga"><span>' + r.q + ' × ' + r.n + '</span><span>' + euro(r.q * r.p) + '</span></div>';
+    }).join('') +
+      '<div class="riga"><span>Consegna</span><span>' + euro(CONSEGNA) + '</span></div>' +
+      '<div class="riga totale"><span>Totale</span><span>' + euro(subtotale() + CONSEGNA) + '</span></div></div></div>';
+    h += '<div class="barra"><button class="bottone centro" data-a="paga"' + (S.paga ? ' disabled' : '') + '>' +
+      (S.paga ? 'Invio dell’ordine…' : 'Ordina e paga ' + euro(subtotale() + CONSEGNA)) + '</button></div>';
+    return h;
+  };
+
+  /* ===================================================================
+     DIFETTO 3 · ERRORE INCOMPRENSIBILE
+     -------------------------------------------------------------------
+     Dove compare: toccando "1 ordine in corso" nella home o la scheda
+     "Ordini" dopo aver ordinato, cioè proprio quando l'utente cerca
+     l'informazione che non è riuscito a leggere (vedi DIFETTO 4).
+     Cosa è sbagliato (apposta):
+     - "Errore 429" è un codice tecnico (troppe richieste al server):
+       non dice cosa è successo, di chi è la colpa, né cosa fare;
+     - la seconda riga è ancora più tecnica della prima;
+     - nessun bottone "Riprova", nessuna freccia indietro e la barra di
+       navigazione è sparita: l'utente è bloccato e può solo chiudere
+       l'app, senza sapere se l'ordine esiste.
+     Principi: gestione degli errori, controllo e libertà dell'utente.
+     Correzione: "Non riusciamo a caricare il tuo ordine. L'ordine è
+     confermato: riprova tra qualche secondo." + bottone "Riprova" +
+     "Torna alla home", lasciando visibile la navigazione.
+     =================================================================== */
+  VISTE.errore = function () {
+    return '<div class="errore" role="alert">' +
+      '<strong>Errore 429</strong>' +
+      '<code>ERR_TOO_MANY_REQUESTS · 0x1AD</code>' +
+      /* ↑ DIFETTO 3: qui mancano spiegazione, "Riprova" e "Indietro". */
+      '</div>';
+  };
+
+  function navigazione(attiva) {
+    function voce(id, icona, nome) {
+      return '<button data-a="nav" data-v="' + id + '" class="' + (attiva === id ? 'attivo' : '') + '"><b>' + icona + '</b>' + nome + '</button>';
+    }
+    return '<nav class="nav">' + voce('home', '⌂', 'Home') + voce('ordini', '☰', 'Ordini') + voce('profilo', '☺', 'Profilo') + '</nav>';
+  }
+
+  /* ===================================================================
+     DIFETTO 4 · CONFERMA CHE SPARISCE
+     -------------------------------------------------------------------
+     Cosa è sbagliato (apposta):
+     - dopo "Ordina e paga" il messaggio di successo contiene QUATTRO
+       informazioni utili (esito, orario di arrivo, nome del rider,
+       codice da dire alla consegna)…
+     - …ma resta a schermo solo DURATA_CONFERMA_MS (meno di un secondo)
+       e poi sparisce da solo, senza che l'utente tocchi nulla;
+     - dopo, quelle informazioni non si trovano più da nessuna parte:
+       il carrello è vuoto e lo stato dell'ordine dà errore (DIFETTO 3).
+     Principi: feedback, visibilità dello stato del sistema.
+     Correzione: schermata di conferma che resta finché l'utente tocca
+     "Ho capito" o "Segui l'ordine", e le stesse informazioni sempre
+     disponibili nella sezione Ordini.
+     Per provare la correzione più semplice: porta la costante a 8000.
+     =================================================================== */
+  var DURATA_CONFERMA_MS = 900;
+
+  function schermataConferma() {
+    var c = S.conferma;
+    return '<div class="conferma" role="status" style="--durata:' + DURATA_CONFERMA_MS + 'ms">' +
+      '<h3>Ordine confermato!</h3>' +
+      '<p>Arrivo previsto alle ' + c.ora + '<br>Il tuo rider è ' + c.rider + '<br>Alla consegna comunica questo codice:</p>' +
+      '<div class="codice">' + c.codice + '</div></div>';
+  }
+
+  function paga() {
+    if (S.paga) { return; }
+    S.paga = true; disegna();
+    dopo(function () {
+      var arrivo = new Date(Date.now() + 35 * 60000);
+      S.conferma = {
+        ora: ('0' + arrivo.getHours()).slice(-2) + ':' + ('0' + arrivo.getMinutes()).slice(-2),
+        rider: 'Tobia',
+        codice: String(1000 + Math.floor(Math.random() * 9000))
+      };
+      S.paga = false; S.carrello = []; S.ordine = true; S.schermata = 'home';
+      disegna();
+      /* ↓ DIFETTO 4: il messaggio viene tolto da solo dopo meno di un secondo. */
+      dopo(function () { S.conferma = null; disegna(); }, DURATA_CONFERMA_MS);
+    }, 700);
+  }
+
+  /* ---------- Disegno e azioni ---------- */
+  function disegna() {
+    var vista = S.schermata === 'permessi' ? VISTE.permessi() : VISTE[S.schermata]();
+    schermo.innerHTML = vista +
+      (S.conferma ? schermataConferma() : '') +
+      (S.avviso ? '<div class="avviso" role="status">' + S.avviso + '</div>' : '');
+  }
+  function vai(nome) { S.schermata = nome; S.avviso = ''; disegna(); }
+  function avviso(testo) {
+    S.avviso = testo; disegna();
+    dopo(function () { S.avviso = ''; disegna(); }, 4000);
+  }
+
+  var AZIONI = {
+    storia: function () { S.storia = true; disegna(); },
+    prosegui: function () { S.permesso = 0; vai('permessi'); },
+    permesso: function () {
+      /* La risposta viene ignorata: qualunque scelta porta avanti. */
+      if (S.permesso === 0) { S.permesso = 1; disegna(); } else { vai('home'); }
+    },
+    locale: function (id) { S.locale = id; vai('locale'); },
+    home: function () { vai('home'); },
+    aggiungi: function (i) {
+      var m = trovaLocale(S.locale).menu[+i];
+      var r = S.carrello.filter(function (x) { return x.n === m.n; })[0];
+      if (r) { r.q++; } else { S.carrello.push({ n: m.n, p: m.p, q: 1 }); }
+      disegna();
+    },
+    carrello: function () { vai('carrello'); },
+    'indietro-carrello': function () { vai(S.locale ? 'locale' : 'home'); },
+    paga: paga,
+    stato: function () { vai('errore'); },
+    nav: function (id) {
+      if (id === 'home') { vai('home'); }
+      else if (id === 'ordini') {
+        if (S.ordine) { vai('errore'); } else { avviso('Non hai ancora fatto ordini.'); }
+      } else { avviso('Il profilo non è incluso in questo prototipo.'); }
+    }
+  };
+
+  schermo.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-a]');
+    if (!b || b.disabled) { return; }
+    var f = AZIONI[b.getAttribute('data-a')];
+    if (f) { f(b.getAttribute('data-v')); }
+  });
+
+  /* ---------- Comandi per il docente (fuori dall'app) ---------- */
+  function ricomincia() { azzeraTimer(); S = nuovoStato(); }
+  document.querySelector('.salti').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-salto]');
+    if (!b) { return; }
+    var dove = b.getAttribute('data-salto');
+    ricomincia();
+    if (dove === 'permessi') { S.schermata = 'permessi'; }
+    if (dove === 'carrello') {
+      S.locale = 'nilde';
+      S.carrello = [{ n: 'Piadina crudo e squacquerone', p: 7.50, q: 1 }, { n: 'Acqua naturale 50 cl', p: 1.50, q: 1 }];
+      S.schermata = 'carrello';
+    }
+    if (dove === 'stato') { S.ordine = true; S.schermata = 'home'; }
+    disegna();
+  });
+
+  ricomincia();
+  disegna();
+})();
+</script>
+</body>
+</html>
