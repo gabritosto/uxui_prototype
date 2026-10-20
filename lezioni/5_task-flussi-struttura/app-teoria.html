@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vaso · task, flussi e navigazione (Lezioni 5 e 6)</title>
+<!--
+  =====================================================================
+  VASO — prototipo per mostrare la teoria delle lezioni 5 e 6
+  Corso UX/UI Design. Non è un'app confusa: è fatta bene apposta.
+  =====================================================================
+  "Vaso" è un'app inventata per curare le piante di casa.
+  Il pannello a destra serve al docente, il telefono a sinistra alla classe.
+
+  Cosa mostra (vedi teoria.md, sezione «Da mostrare nel prototipo»):
+    A. Un task con i tocchi contati: segnare l'annaffiatura del basilico.
+       Cancellare una pianta chiede una conferma: fatica voluta.
+    B. Tre modelli di navigazione sulla stessa app:
+       barra in basso, menu laterale, tessere (hub).
+       Annaffiare: 2 / 2 / 3 tocchi. Da Piante a Promemoria: 1 / 2 / 2.
+    C. Stato vuoto (nessuna pianta) e stato di errore (foto del diario
+       che non si carica). Servono alla lezione 6.
+
+  Si conta ogni tocco dentro il telefono, anche «indietro».
+  I comandi del pannello non contano.
+  Tasti: 1, 2, 3 cambiano modello; R ricomincia.
+  Un solo file, nessuna risorsa esterna: funziona offline.
+  =====================================================================
+-->
+<style>
+:root{
+  --page:#E8EDEF; --ink:#16202A; --muted:#566370; --line:#C6D0D5;
+  --water:#1D6AAE; --water-soft:#DCEAF6;
+  --leaf:#2D6A45; --leaf-soft:#E3EFE6; --app:#F6F8F4; --card:#FFFFFF;
+  --danger:#B3261E; --danger-soft:#FBE9E7;
+  --font:"Atkinson Hyperlegible","Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--page);color:var(--ink);font-family:var(--font);font-size:17px;line-height:1.45}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--water);outline-offset:2px}
+
+.stage{max-width:1240px;margin:0 auto;padding:28px 24px 40px;display:grid;grid-template-columns:auto 1fr;gap:48px;align-items:start}
+@media (max-width:860px){.stage{grid-template-columns:1fr;gap:28px;padding:16px}}
+
+/* ---------- telefono ---------- */
+.phone{position:sticky;top:20px;width:380px;height:760px;border-radius:44px;background:#1B1F23;padding:12px;box-shadow:0 30px 60px -30px rgba(22,32,42,.55);position:relative}
+@media (max-width:860px){.phone{position:relative;top:0;margin:0 auto;width:min(380px,100%);height:720px}}
+.screen{position:relative;width:100%;height:100%;border-radius:34px;overflow:hidden;background:var(--app);display:flex;flex-direction:column}
+.status{height:34px;flex:none;display:flex;justify-content:space-between;align-items:center;padding:0 26px;font-size:13px;font-weight:700}
+.top{flex:none;display:flex;align-items:center;gap:6px;padding:4px 12px 10px;min-height:52px}
+.top h1{font-size:22px;margin:0;flex:1;letter-spacing:-.01em}
+.icon-btn{width:44px;height:44px;border:0;background:transparent;border-radius:12px;display:grid;place-items:center;flex:none}
+.icon-btn:hover{background:rgba(0,0,0,.05)}
+.icon-btn svg{width:24px;height:24px}
+.body{flex:1;overflow:auto;padding:4px 16px 20px}
+.tabbar{flex:none;display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid #DDE4DE;background:var(--card);padding:6px 4px 14px}
+.tab{border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;padding:6px 0;color:#6B756E;border-radius:10px}
+.tab svg{width:24px;height:24px}
+.tab[aria-current="page"]{color:var(--leaf);font-weight:700}
+
+.plant{width:100%;display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid #E1E7E2;border-radius:16px;padding:12px 14px;margin-bottom:10px;text-align:left}
+.plant:hover{border-color:#B9CBBE}
+.pic{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;font-size:26px;flex:none}
+.plant b{display:block;font-size:17px}
+.plant small{color:#5F6A63;font-size:14px}
+.plant .due{color:var(--water);font-weight:700}
+
+.hero{display:flex;flex-direction:column;align-items:center;text-align:center;padding:10px 0 18px}
+.hero .pic{width:96px;height:96px;font-size:54px;border-radius:28px}
+.hero h2{margin:12px 0 2px;font-size:24px}
+.hero p{margin:0;color:#5F6A63}
+.primary{width:100%;border:0;border-radius:16px;background:var(--leaf);color:#fff;font-weight:700;font-size:18px;padding:16px;margin:6px 0 10px}
+.primary:hover{background:#245838}
+.secondary{width:100%;border:1px solid #C9D6CC;border-radius:16px;background:var(--card);font-weight:700;padding:14px;margin-bottom:10px;text-align:left;display:flex;justify-content:space-between}
+.quiet-danger{width:100%;border:0;background:transparent;color:var(--danger);font-weight:700;padding:14px;margin-top:14px}
+.row{display:flex;justify-content:space-between;padding:12px 2px;border-bottom:1px solid #E1E7E2}
+.row span:last-child{color:#5F6A63}
+
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding-top:6px}
+.tile{border:0;border-radius:22px;aspect-ratio:1/1.05;padding:16px;text-align:left;display:flex;flex-direction:column;justify-content:space-between;font-weight:700;font-size:18px}
+.tile svg{width:34px;height:34px}
+.tile.t1{background:var(--leaf-soft);color:var(--leaf)}
+.tile.t2{background:var(--water-soft);color:var(--water)}
+.tile.t3{background:#F4ECDD;color:#7A5A1E}
+.tile.t4{background:#ECE8F3;color:#56487A}
+.greet{font-size:15px;color:#5F6A63;margin:0 0 6px}
+
+.empty{display:flex;flex-direction:column;align-items:center;text-align:center;padding:48px 10px}
+.empty .pot{font-size:64px;line-height:1}
+.empty h2{font-size:20px;margin:14px 0 6px}
+.empty p{margin:0 0 18px;color:#5F6A63}
+
+.grid3{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.photo{aspect-ratio:1;border-radius:16px;display:flex;align-items:flex-end;padding:8px;font-size:13px;color:#fff;font-weight:700}
+.photo.err{background:var(--danger-soft);color:var(--danger);flex-direction:column;justify-content:center;align-items:flex-start;gap:6px;padding:12px;font-weight:400;font-size:13px;line-height:1.3}
+.photo.err b{font-size:14px}
+.photo.err button{border:1px solid var(--danger);background:#fff;color:var(--danger);border-radius:10px;padding:6px 10px;font-weight:700;font-size:13px}
+
+.field{display:block;margin:6px 0 16px}
+.field span{display:block;font-weight:700;margin-bottom:6px}
+.field input{width:100%;font:inherit;padding:14px;border-radius:14px;border:1px solid #C9D6CC;background:#fff}
+
+.drawer-wrap{position:absolute;inset:0;background:rgba(15,25,20,.35);display:flex;z-index:5}
+.drawer{width:78%;background:var(--card);height:100%;padding:56px 14px 20px;box-shadow:10px 0 30px rgba(0,0,0,.15);animation:in .18s ease-out}
+.drawer button{display:flex;gap:14px;align-items:center;width:100%;border:0;background:transparent;padding:14px 12px;border-radius:12px;font-size:17px;text-align:left}
+.drawer button[aria-current="page"]{background:var(--leaf-soft);color:var(--leaf);font-weight:700}
+.drawer svg{width:22px;height:22px}
+.drawer .brand{font-size:22px;font-weight:700;padding:0 12px 16px;color:var(--leaf)}
+@keyframes in{from{transform:translateX(-24px);opacity:.4}to{transform:none;opacity:1}}
+
+.dialog-wrap{position:absolute;inset:0;background:rgba(15,25,20,.4);display:grid;place-items:center;z-index:6;padding:24px}
+.dialog{background:#fff;border-radius:22px;padding:22px;width:100%}
+.dialog h2{margin:0 0 6px;font-size:20px}
+.dialog p{margin:0 0 18px;color:#5F6A63}
+.dialog .acts{display:flex;gap:10px}
+.dialog .acts button{flex:1;border-radius:14px;padding:14px;font-weight:700;border:1px solid #C9D6CC;background:#fff}
+.dialog .acts .del{background:var(--danger);border-color:var(--danger);color:#fff}
+
+.toast{position:absolute;left:16px;right:16px;bottom:96px;background:#1F2A24;color:#fff;border-radius:14px;padding:12px 14px;font-weight:700;z-index:7;animation:up .2s ease-out}
+@keyframes up{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
+
+/* tocco: il cerchio che si vede sul proiettore */
+.ripple{position:fixed;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;border:3px solid var(--water);pointer-events:none;z-index:50;animation:rip .45s ease-out forwards}
+@keyframes rip{from{transform:scale(.4);opacity:1}to{transform:scale(1.3);opacity:0}}
+
+/* ---------- pannello del docente ---------- */
+.panel h2{font-size:15px;color:var(--muted);margin:0 0 10px;font-weight:700}
+.panel section{margin-bottom:22px}
+.title{font-size:34px;line-height:1.1;margin:0 0 6px;letter-spacing:-.02em}
+.lead{margin:0 0 18px;color:var(--muted);max-width:56ch}
+
+.counter{display:flex;align-items:flex-end;gap:22px;margin-bottom:8px}
+.count{font-size:96px;line-height:.85;font-weight:700;color:var(--water);font-variant-numeric:tabular-nums;min-width:1.2ch}
+.count-side{padding-bottom:6px}
+.count-side b{display:block;font-size:20px}
+.dots{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.dots i{width:14px;height:14px;border-radius:50%;background:var(--water)}
+.dots i.over{background:var(--danger)}
+.dots i.ghost{background:transparent;border:2px dashed #9FB3C3}
+.verdict{margin:12px 0 0;font-weight:700;min-height:1.5em}
+.verdict.ok{color:var(--leaf)}
+
+.seg{display:flex;flex-wrap:wrap;gap:8px}
+.seg button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 16px;font-weight:700}
+.seg button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+
+.tasks{display:grid;gap:8px}
+.tasks button{display:grid;grid-template-columns:1fr auto;gap:2px 12px;text-align:left;border:1px solid var(--line);background:#fff;border-radius:14px;padding:12px 14px}
+.tasks button[aria-pressed="true"]{border-color:var(--water);box-shadow:inset 0 0 0 1px var(--water)}
+.tasks b{font-size:17px}
+.tasks small{color:var(--muted);grid-column:1}
+.tasks .goal{grid-row:1/3;grid-column:2;align-self:center;font-size:14px;color:var(--water);font-weight:700;white-space:nowrap}
+
+.trail{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.trail li{background:#fff;border:1px solid var(--line);border-radius:10px;padding:5px 10px;font-size:15px}
+.trail li.act{background:var(--leaf-soft);border-color:#B9D4C1;color:var(--leaf);font-weight:700}
+.trail li.sep{border:0;background:none;padding:0;color:var(--muted)}
+.trail-empty{color:var(--muted);font-size:15px}
+
+.map{font-size:15px;columns:2;column-gap:28px}
+@media (max-width:520px){.map{columns:1}}
+.map div{break-inside:avoid;margin-bottom:10px}
+.map b{display:block}
+.map span{display:block;padding-left:16px;color:var(--muted)}
+.map .here{color:var(--water);font-weight:700}
+.reset{border:0;background:transparent;color:var(--water);font-weight:700;padding:6px 0;text-decoration:underline;text-underline-offset:3px}
+.hint{font-size:14px;color:var(--muted);margin:8px 0 0}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+<main class="stage">
+  <div class="phone" aria-label="Telefono con l'app Vaso">
+    <div class="screen" id="screen"></div>
+  </div>
+
+  <div class="panel">
+    <h1 class="title">Vaso: quanta fatica costa un task?</h1>
+    <p class="lead">Scegliete un task, fatelo sul telefono e guardate il numero salire. Poi cambiate modello di navigazione e rifatelo.</p>
+
+    <section aria-live="polite">
+      <div class="counter">
+        <div class="count" id="count">0</div>
+        <div class="count-side"><b id="countLabel">tocchi</b><span id="goalLabel"></span></div>
+      </div>
+      <div class="dots" id="dots" aria-hidden="true"></div>
+      <p class="verdict" id="verdict"></p>
+    </section>
+
+    <section>
+      <h2>Il flusso fatto finora</h2>
+      <div id="trail"></div>
+    </section>
+
+    <section>
+      <h2>Il task</h2>
+      <div class="tasks" id="tasks"></div>
+    </section>
+
+    <section>
+      <h2>Modello di navigazione</h2>
+      <div class="seg" id="models"></div>
+    </section>
+
+    <section>
+      <h2>Cosa c'è dentro le schermate</h2>
+      <div class="seg" id="states"></div>
+      <p class="hint" id="stateHint"></p>
+    </section>
+
+    <section>
+      <h2>La mappa dell'app</h2>
+      <div class="map" id="map"></div>
+    </section>
+
+    <button class="reset" id="reset">Ricomincia il task</button>
+  </div>
+</main>
+
+<script>
+/* ---------- icone ---------- */
+const I={
+  leaf:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19c0-8 5-13 14-14 0 9-5 14-13 14"/><path d="M5 19l7-7"/></svg>',
+  bell:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/></svg>',
+  book:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 21V5"/></svg>',
+  user:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>',
+  back:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
+  menu:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
+  plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>'
+};
+
+/* ---------- contenuti ---------- */
+const GROUPS=[
+  {id:'piante',label:'Le mie piante',icon:'leaf',cls:'t1'},
+  {id:'promemoria',label:'Promemoria',icon:'bell',cls:'t2'},
+  {id:'impara',label:'Impara',icon:'book',cls:'t3'},
+  {id:'profilo',label:'Profilo',icon:'user',cls:'t4'}
+];
+const START_PLANTS=()=>[
+  {id:'basilico',name:'Basilico',emoji:'🌿',bg:'#E3EFE6',last:'3 giorni fa',due:'Da annaffiare oggi'},
+  {id:'monstera',name:'Monstera',emoji:'🪴',bg:'#E6EEE9',last:'ieri',due:'Fra 5 giorni'},
+  {id:'ficus',name:'Ficus',emoji:'🌳',bg:'#EAEDE4',last:'4 giorni fa',due:'Fra 2 giorni'}
+];
+const MODELS={barra:'Barra in basso',menu:'Menu laterale',tessere:'Tessere'};
+const TASKS={
+  annaffia:{label:'Segnare l\'annaffiatura del basilico',small:'Il task di ogni giorno: deve costare poco.',goal:{barra:2,menu:2,tessere:3},from:'home'},
+  promemoria:{label:'Da «Le mie piante» a «Promemoria»',small:'Cambiare parte dell\'app.',goal:{barra:1,menu:2,tessere:2},from:'piante'},
+  elimina:{label:'Cancellare il basilico',small:'Qui la fatica è voluta: si chiede conferma.',goal:{barra:3,menu:3,tessere:4},from:'home'},
+  libero:{label:'Esplorare liberamente',small:'Nessun traguardo, si contano solo i tocchi.',goal:null,from:'home'}
+};
+const STATES={normale:'Tutto normale',vuoto:'Nessuna pianta',errore:'Foto che non si carica'};
+const STATE_HINT={
+  normale:'',
+  vuoto:'Stato vuoto: cosa vede chi apre l\'app la prima volta. Aprite «Le mie piante».',
+  errore:'Stato di errore: aprite Basilico, poi Diario.'
+};
+const TITLES={hub:'Vaso',piante:'Le mie piante',pianta:'',promemoria:'Promemoria',impara:'Impara',profilo:'Profilo',aggiungi:'Aggiungi una pianta',diario:'Diario'};
+
+/* ---------- stato ---------- */
+const S={model:'barra',task:'annaffia',data:'normale',stack:[],taps:0,trail:[],done:false,plants:START_PLANTS(),drawer:false,dialog:null,toast:null,photoFixed:false};
+let toastTimer;
+
+function homeId(){return S.model==='tessere'?'hub':'piante'}
+function cur(){return S.stack[S.stack.length-1]}
+function nameOf(v){return v.id==='pianta'?plant(v.pid).name:(v.id==='diario'?'Diario':TITLES[v.id])}
+function plant(id){return S.plants.find(p=>p.id===id)}
+
+function startTask(){
+  S.taps=0;S.done=false;S.drawer=false;S.dialog=null;S.toast=null;S.photoFixed=false;
+  S.plants=S.data==='vuoto'?[]:START_PLANTS();
+  const t=TASKS[S.task];
+  S.stack=[{id:homeId()}];
+  if(t.from==='piante'&&S.model==='tessere')S.stack.push({id:'piante'});
+  S.trail=[{t:nameOf(cur())}];
+  render();
+}
+
+/* ogni tocco nel telefono passa da qui */
+function tap(fn,e){
+  if(e){ripple(e)}
+  S.taps++;
+  fn();
+  render();
+}
+function go(v){S.drawer=false;S.stack.push(v);S.trail.push({t:nameOf(v)});if(v.id==='promemoria')finish('promemoria')}
+function goRoot(id){S.drawer=false;S.stack=[{id}];if(S.model==='tessere'&&id!=='hub')S.stack=[{id:'hub'},{id}];S.trail.push({t:TITLES[id]});if(id==='promemoria')finish('promemoria')}
+function back(){S.stack.pop();S.trail.push({t:nameOf(cur())})}
+function act(label){S.trail.push({t:label,act:true})}
+function toast(msg){S.toast=msg;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{S.toast=null;render()},2200)}
+function finish(kind){if(S.task===kind&&!S.done)S.done=true}
+
+/* ---------- schermate ---------- */
+function topBar(){
+  const v=cur();const isRoot=S.stack.length===1||(S.model==='tessere'&&false);
+  const showBack=S.stack.length>1&&!(S.model==='barra'&&isTabRoot(v)&&S.stack.length===1);
+  let left='';
+  if(S.model==='menu'&&S.stack.length===1)left=btn('menu','Apri il menu',()=>{S.drawer=true});
+  else if(showBack)left=btn('back','Indietro',back);
+  let right='';
+  if(v.id==='piante'&&S.plants.length)right=btn('plus','Aggiungi una pianta',()=>go({id:'aggiungi'}));
+  const title=v.id==='pianta'?'':(v.id==='diario'?'Diario del '+plant(v.pid).name.toLowerCase():TITLES[v.id]);
+  return `<div class="top">${left}<h1>${title}</h1>${right}</div>`;
+}
+function isTabRoot(v){return GROUPS.some(g=>g.id===v.id)}
+
+const handlers=[];
+function h(fn){handlers.push(fn);return handlers.length-1}
+function btn(icon,label,fn){return `<button class="icon-btn" aria-label="${label}" data-h="${h(fn)}">${I[icon]}</button>`}
+
+function viewHub(){
+  return `<p class="greet">Ciao Marta, oggi una pianta ha sete.</p><div class="tiles">${GROUPS.map(g=>`<button class="tile ${g.cls}" data-h="${h(()=>go({id:g.id}))}">${I[g.icon]}<span>${g.label}</span></button>`).join('')}</div>`;
+}
+function viewPiante(){
+  if(!S.plants.length){
+    return `<div class="empty"><div class="pot" aria-hidden="true">🪴</div><h2>Ancora nessuna pianta</h2><p>Aggiungi la prima: ti diremo noi quando annaffiarla.</p><button class="primary" data-h="${h(()=>go({id:'aggiungi'}))}">Aggiungi una pianta</button></div>`;
+  }
+  return S.plants.map(p=>`<button class="plant" data-h="${h(()=>go({id:'pianta',pid:p.id}))}"><span class="pic" style="background:${p.bg}">${p.emoji}</span><span><b>${p.name}</b><small class="${p.due==='Da annaffiare oggi'?'due':''}">${p.due}</small></span></button>`).join('');
+}
+function viewPianta(v){
+  const p=plant(v.pid);
+  return `<div class="hero"><span class="pic" style="background:${p.bg}">${p.emoji}</span><h2>${p.name}</h2><p>Ultima annaffiatura: ${p.last}</p></div>
+  <button class="primary" data-h="${h(()=>{p.last='oggi';p.due='Fra 3 giorni';act('Annaffiatura segnata');toast('Annaffiatura segnata');finish('annaffia')})}">Segna annaffiatura</button>
+  <button class="secondary" data-h="${h(()=>go({id:'diario',pid:p.id}))}"><span>Diario</span><span>4 foto</span></button>
+  <button class="quiet-danger" data-h="${h(()=>{S.dialog=p.id})}">Elimina pianta</button>`;
+}
+function viewDiario(v){
+  const cols=['#7FA36B','#5E8C61','#94B07A','#6E9A73'];
+  return `<div class="grid3">${cols.map((c,i)=>{
+    if(i===0&&S.data==='errore'&&!S.photoFixed)return `<div class="photo err" role="alert"><b>La foto non si è caricata</b>Controlla la connessione, poi riprova.<button data-h="${h(()=>{S.photoFixed=true;act('Foto ricaricata')})}">Riprova</button></div>`;
+    return `<div class="photo" style="background:${c}">${['12 ott','5 ott','28 set','20 set'][i]}</div>`}).join('')}</div>`;
+}
+function viewPromemoria(){
+  if(!S.plants.length)return `<div class="empty"><div class="pot" aria-hidden="true">🔔</div><h2>Nessun promemoria</h2><p>I promemoria arrivano quando aggiungi una pianta.</p></div>`;
+  return S.plants.map(p=>`<div class="row"><span>${p.emoji} ${p.name}</span><span>${p.due}</span></div>`).join('');
+}
+function viewImpara(){
+  return `<button class="secondary" data-h="${h(()=>toast('Qui ci sarebbe la guida alle specie'))}"><span>Guida alle specie</span><span>120 piante</span></button><button class="secondary" data-h="${h(()=>toast('Qui si scriverebbe a un esperto'))}"><span>Chiedi a un esperto</span><span>risponde in un giorno</span></button>`;
+}
+function viewProfilo(){return `<div class="row"><span>Nome</span><span>Marta</span></div><div class="row"><span>Notifiche</span><span>Attive, alle 8:00</span></div><div class="row"><span>Piante seguite</span><span>${S.plants.length}</span></div>`}
+function viewAggiungi(){
+  return `<label class="field"><span>Nome della pianta</span><input id="newName" value="Rosmarino"></label>
+  <button class="primary" data-h="${h(()=>{const n=(document.getElementById('newName').value||'Nuova pianta').trim();S.plants.push({id:'p'+Date.now(),name:n,emoji:'🌱',bg:'#E6EEE9',last:'mai',due:'Da annaffiare oggi'});act('Pianta salvata');toast(n+' salvata');S.stack.pop();S.trail.push({t:nameOf(cur())})})}">Salva la pianta</button>`;
+}
+
+function render(){
+  handlers.length=0;
+  const v=cur();
+  const views={hub:viewHub,piante:viewPiante,pianta:viewPianta,diario:viewDiario,promemoria:viewPromemoria,impara:viewImpara,profilo:viewProfilo,aggiungi:viewAggiungi};
+  let html=`<div class="status"><span>9:41</span><span>●●● 82%</span></div>${topBar()}<div class="body">${views[v.id](v)}</div>`;
+  if(S.model==='barra'){
+    const root=S.stack[0].id;
+    html+=`<nav class="tabbar" aria-label="Barra in basso">${GROUPS.map(g=>`<button class="tab" ${root===g.id?'aria-current="page"':''} data-h="${h(()=>{goRoot(g.id)})}">${I[g.icon]}<span>${g.label==='Le mie piante'?'Piante':g.label}</span></button>`).join('')}</nav>`;
+  }
+  if(S.drawer){
+    const root=S.stack[0].id;
+    html+=`<div class="drawer-wrap" data-h="${h(()=>{S.drawer=false})}"><nav class="drawer" aria-label="Menu laterale" data-stop="1"><div class="brand">Vaso</div>${GROUPS.map(g=>`<button ${root===g.id?'aria-current="page"':''} data-h="${h(()=>goRoot(g.id))}">${I[g.icon]}${g.label}</button>`).join('')}</nav></div>`;
+  }
+  if(S.dialog){
+    const p=plant(S.dialog);
+    html+=`<div class="dialog-wrap"><div class="dialog" role="alertdialog" aria-labelledby="dt"><h2 id="dt">Eliminare il ${p.name.toLowerCase()}?</h2><p>Perderai anche il diario e le sue foto.</p><div class="acts"><button data-h="${h(()=>{S.dialog=null})}">Annulla</button><button class="del" data-h="${h(()=>{S.plants=S.plants.filter(x=>x.id!==p.id);S.dialog=null;S.stack.pop();act('Pianta eliminata');S.trail.push({t:nameOf(cur())});toast(p.name+' eliminato');finish('elimina')})}">Elimina</button></div></div></div>`;
+  }
+  if(S.toast)html+=`<div class="toast" role="status">${S.toast}</div>`;
+  document.getElementById('screen').innerHTML=html;
+  renderPanel();
+}
+
+/* ---------- pannello ---------- */
+function renderPanel(){
+  const t=TASKS[S.task];const goal=t.goal?t.goal[S.model]:null;
+  document.getElementById('count').textContent=S.taps;
+  document.getElementById('countLabel').textContent=S.taps===1?'tocco':'tocchi';
+  document.getElementById('goalLabel').textContent=goal?`il minimo con ${MODELS[S.model].toLowerCase()}: ${goal}`:'';
+  let dots='';const n=Math.max(S.taps,goal||0);
+  for(let i=0;i<n;i++)dots+=`<i class="${i>=S.taps?'ghost':(goal&&i>=goal?'over':'')}"></i>`;
+  document.getElementById('dots').innerHTML=dots;
+  const vd=document.getElementById('verdict');
+  if(S.done){vd.className='verdict ok';vd.textContent=S.taps<=goal?`Fatto in ${S.taps} ${S.taps===1?'tocco':'tocchi'}: il percorso più corto.`:`Fatto in ${S.taps} tocchi: ${S.taps-goal} in più del minimo.`}
+  else{vd.className='verdict';vd.textContent=''}
+
+  document.getElementById('tasks').innerHTML=Object.entries(TASKS).map(([k,x])=>`<button aria-pressed="${S.task===k}" data-task="${k}"><b>${x.label}</b><small>${x.small}</small>${x.goal?`<span class="goal">${x.goal.barra} · ${x.goal.menu} · ${x.goal.tessere}</span>`:''}</button>`).join('');
+  document.getElementById('models').innerHTML=Object.entries(MODELS).map(([k,x],i)=>`<button aria-pressed="${S.model===k}" data-model="${k}" title="Tasto ${i+1}">${x}</button>`).join('');
+  document.getElementById('states').innerHTML=Object.entries(STATES).map(([k,x])=>`<button aria-pressed="${S.data===k}" data-state="${k}">${x}</button>`).join('');
+  document.getElementById('stateHint').textContent=STATE_HINT[S.data];
+
+  const tr=S.trail;
+  document.getElementById('trail').innerHTML=tr.length?`<ol class="trail">${tr.map((x,i)=>(i?'<li class="sep" aria-hidden="true">›</li>':'')+`<li class="${x.act?'act':''}">${x.t}</li>`).join('')}</ol>`:'<p class="trail-empty">Ancora niente.</p>';
+
+  const here=cur();const root=S.stack.find(v=>v.id!=='hub');
+  const sub={piante:['Scheda della pianta','Diario','Aggiungi una pianta'],promemoria:['Elenco dei promemoria'],impara:['Guida alle specie','Chiedi a un esperto'],profilo:['Dati e notifiche']};
+  const subHere={pianta:'Scheda della pianta',diario:'Diario',aggiungi:'Aggiungi una pianta'};
+  document.getElementById('map').innerHTML=(S.model==='tessere'?`<div><b class="${here.id==='hub'?'here':''}">Home a tessere</b></div>`:'')+GROUPS.map(g=>`<div><b class="${root&&root.id===g.id&&S.stack.length<=(S.model==='tessere'?2:1)?'here':''}">${g.label}</b>${sub[g.id].map(s=>`<span class="${root&&root.id===g.id&&subHere[here.id]===s?'here':''}">${s}</span>`).join('')}</div>`).join('');
+}
+
+/* ---------- eventi ---------- */
+document.getElementById('screen').addEventListener('click',e=>{
+  const el=e.target.closest('[data-h]');if(!el)return;
+  if(e.target.closest('[data-stop]')&&el.classList.contains('drawer-wrap'))return;
+  if(el.tagName==='INPUT')return;
+  const fn=handlers[+el.dataset.h];
+  if(el.classList.contains('drawer-wrap')){S.drawer=false;render();return} /* chiudere il menu toccando fuori: conta */
+  tap(fn,e);
+});
+document.querySelector('.panel').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.task){S.task=b.dataset.task;startTask()}
+  else if(b.dataset.model){S.model=b.dataset.model;startTask()}
+  else if(b.dataset.state){S.data=b.dataset.state;if(S.data!=='normale')S.task='libero';startTask()}
+  else if(b.id==='reset')startTask();
+});
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT')return;
+  const m={'1':'barra','2':'menu','3':'tessere'}[e.key];
+  if(m){S.model=m;startTask()}
+  if(e.key==='r'||e.key==='R')startTask();
+});
+function ripple(e){
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  const d=document.createElement('div');d.className='ripple';d.style.left=e.clientX+'px';d.style.top=e.clientY+'px';
+  document.body.appendChild(d);setTimeout(()=>d.remove(),500);
+}
+startTask();
+</script>
+</body>
+</html>
