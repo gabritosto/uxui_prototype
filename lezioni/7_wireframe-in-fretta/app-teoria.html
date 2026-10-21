@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vaso · wireframe in fretta (Lezioni 7 e 8)</title>
+<!--
+  =====================================================================
+  VASO — prototipo per mostrare la teoria delle lezioni 7 e 8
+  Corso UX/UI Design. Non è un'app confusa: serve a confrontare
+  la stessa schermata disegnata in modi diversi.
+  =====================================================================
+  "Vaso" è un'app inventata per curare le piante di casa (la stessa
+  del prototipo delle lezioni 5 e 6).
+
+  Due schermate (interruttore nel pannello):
+    - «Le mie piante»: teoria ed esempi (case-study.md, V3). Si apre qui.
+    - «Scheda della pianta – Basilico»: Esercizio 1 (case-study.md, V1, V2).
+
+  Viste (nomi esatti, da usare in teoria, esercizi, note e slide):
+    Lezione 7, per entrambe le schermate
+      1. Mockup             la schermata finita, a colori
+      2. Wireframe          solo gli elementi di struttura (S), in grigio
+      3. Mockup travestito  grigio, ma con tutte le decorazioni (D) scolorite
+      4. Gerarchia          senza colore, immagini e icone: gruppi 1-2-3
+    Lezione 8
+      5. Stato vuoto        «Nessuna pianta» oppure «Diario vuoto»
+      6. Errore             salvataggio non riuscito, con «Riprova»
+      Interruttore «Testo lungo il doppio»: due telefoni affiancati,
+      auto layout (regge) e posizioni fisse (si rompe).
+
+  Scheda del Basilico, vista Mockup: elementi dall'alto in basso come
+  nella tabella V1 di case-study.md:
+    tasto indietro (S) · foto grande (S) · nome (S) · nome latino (D) ·
+    sfondo verde sfumato con foglioline (D) · ultima annaffiatura con
+    data (S) · goccia accanto alla data (D) · «Segna annaffiatura» (S) ·
+    ombre e angoli arrotondati delle card (D) · diario con le foto (S) ·
+    «Elimina pianta» (S) · barra in basso (S)
+
+  Tasti: 1-6 cambiano vista, S cambia schermata, T testo lungo,
+  R ricomincia (il basilico torna da annaffiare).
+  Un solo file, nessuna risorsa esterna: funziona offline.
+  =====================================================================
+-->
+<style>
+:root{
+  --page:#E8EDEF; --ink:#16202A; --muted:#566370; --line:#C6D0D5;
+  --water:#1D6AAE; --water-soft:#DCEAF6;
+  --leaf:#2D6A45; --leaf-soft:#E3EFE6; --app:#F6F8F4; --card:#FFFFFF;
+  --danger:#B3261E; --danger-soft:#FBE9E7;
+  --font:"Atkinson Hyperlegible","Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+  --plain:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--page);color:var(--ink);font-family:var(--font);font-size:17px;line-height:1.45}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--water);outline-offset:2px}
+
+.stage{max-width:1280px;margin:0 auto;padding:28px 24px 40px;display:grid;grid-template-columns:auto 1fr;gap:48px;align-items:start}
+@media (max-width:900px){.stage{grid-template-columns:1fr;gap:28px;padding:16px}}
+
+/* ---------- telefoni ---------- */
+.phones{display:flex;gap:20px;align-items:flex-start;position:sticky;top:20px}
+@media (max-width:900px){.phones{position:relative;top:0;flex-wrap:wrap;justify-content:center}}
+.device{display:flex;flex-direction:column;align-items:center;gap:10px}
+.cap{font-weight:700;font-size:15px;display:flex;align-items:center;gap:8px}
+.cap i{font-style:normal;font-size:13px;padding:2px 9px;border-radius:999px;color:#fff}
+.cap i.ok{background:var(--leaf)} .cap i.ko{background:var(--danger)}
+.phone{width:380px;height:760px;border-radius:44px;background:#1B1F23;padding:12px;box-shadow:0 30px 60px -30px rgba(22,32,42,.55)}
+.phone.small{width:300px;height:660px;border-radius:38px;padding:10px}
+@media (max-width:900px){.phone{width:min(380px,100%);height:720px}.device{width:100%}.device.pair{width:auto}.phone.small{width:300px;height:660px}}
+.screen{position:relative;width:100%;height:100%;border-radius:34px;overflow:hidden;display:flex;flex-direction:column}
+.small .screen{border-radius:29px}
+.status{height:34px;flex:none;display:flex;justify-content:space-between;align-items:center;padding:0 26px;font-size:13px;font-weight:700}
+.top{flex:none;display:flex;align-items:center;gap:8px;padding:2px 10px 4px;min-height:50px}
+.top h1{font-size:26px;margin:0 0 0 8px;flex:1;line-height:1.1;display:flex;align-items:center;gap:8px}
+.top h1 .deco svg{width:28px;height:28px}
+.icon-btn{width:44px;height:44px;border:0;background:transparent;border-radius:12px;display:grid;place-items:center;flex:none}
+.icon-btn svg{width:24px;height:24px}
+.body{flex:1;overflow:auto;padding:0 18px 18px;position:relative}
+.small .body{padding:0 14px 14px}
+.tabbar{flex:none;display:grid;grid-template-columns:repeat(4,1fr);padding:6px 4px 14px}
+.tab{border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;padding:6px 0;border-radius:10px}
+.tab svg{width:24px;height:24px}
+.tab .sq{width:20px;height:20px;border:2px solid #8A8A8A;border-radius:3px}
+
+/* scheda del basilico */
+.hero-img{height:150px;border-radius:22px;overflow:hidden;margin-bottom:12px;position:relative}
+.small .hero-img{height:120px}
+.hero-img svg{width:100%;height:100%;display:block}
+.name{margin:0;font-size:26px;line-height:1.15}
+.latin{margin:2px 0 0;font-size:14px;font-style:italic}
+.wcard{position:relative;overflow:hidden;display:flex;gap:10px;align-items:center;padding:12px 14px;margin:12px 0;min-height:64px}
+.wcard .leaves{position:absolute;right:-6px;top:-6px;width:110px;height:84px;pointer-events:none}
+.wcard .txt{position:relative}
+.wcard b{display:block;font-size:15px}
+.wcard span{font-size:15px;display:inline-flex;align-items:center;gap:6px}
+.wcard .deco svg{width:18px;height:18px}
+.primary{width:100%;border:0;font-weight:700;font-size:18px;padding:15px;margin:0 0 14px;display:flex;justify-content:center;align-items:center;gap:8px}
+.diary{padding:12px 14px;margin-bottom:6px}
+.diary-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+.diary-h h3{margin:0;font-size:17px}
+.diary-h span{font-size:14px}
+.photos{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.photos>div{aspect-ratio:1;overflow:hidden;position:relative}
+.photos svg{width:100%;height:100%;display:block}
+.photos small{position:absolute;left:5px;bottom:5px;font-size:11px;font-weight:700;background:rgba(0,0,0,.55);color:#fff;border-radius:6px;padding:0 5px}
+.del{display:block;margin:6px auto 0;border:0;background:none;font-size:14px;font-weight:700;padding:10px}
+
+/* le mie piante */
+.greet{margin:0 0 14px;font-size:18px}
+.prow{width:100%;display:flex;align-items:center;gap:12px;padding:10px 12px;margin-bottom:10px;text-align:left;border:0;background:none}
+.prow .thumb{width:52px;height:52px;flex:none;overflow:hidden}
+.prow .thumb svg{width:100%;height:100%;display:block}
+.prow b{display:block;font-size:17px}
+.prow small{font-size:14px;display:inline-flex;align-items:center;gap:4px}
+.prow small .deco svg{width:15px;height:15px}
+.add{margin-top:6px}
+
+.xbox{position:relative;border:2px solid #9A9A9A;background:#EDEDED;border-radius:0;width:100%;height:100%}
+.xbox svg{position:absolute;inset:0;width:100%;height:100%}
+.xbox em{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:#EDEDED;padding:0 6px;font-style:normal;font-size:13px;color:#555}
+
+.errbox{padding:12px 14px;margin:-4px 0 14px}
+.errbox b{display:block}
+.errbox p{margin:2px 0 10px;font-size:14px}
+.errbox button{padding:8px 16px;font-weight:700}
+.emptybox{text-align:center;padding:14px 8px 10px}
+.emptybox p{margin:4px 0 12px;font-size:14px}
+.emptybox button{padding:10px 16px;font-weight:700}
+.empty-page{display:flex;flex-direction:column;align-items:center;text-align:center;padding:30px 8px}
+.empty-page .ph{width:150px;height:110px;margin-bottom:18px}
+.empty-page h2{font-size:22px;margin:0 0 6px}
+.empty-page p{margin:0 0 20px}
+
+.toast{position:absolute;left:14px;right:14px;bottom:92px;border-radius:14px;padding:12px 14px;font-weight:700;z-index:7;animation:up .2s ease-out;font-size:15px}
+@keyframes up{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
+
+/* ===== 1. MOCKUP: colori, foto illustrate, icone ===== */
+.st-mock{background:var(--app);color:var(--ink)}
+.st-mock .top h1 .deco{color:#B65A33}
+.st-mock .tabbar{background:#fff;border-top:1px solid #DDE4DE}
+.st-mock .tab{color:#6B756E}.st-mock .tab[aria-current]{color:var(--leaf);font-weight:700}
+.st-mock .latin{color:#5F6A63}
+.st-mock .wcard{background:linear-gradient(135deg,#EEF7EF,#C7E2CD);border-radius:18px;box-shadow:0 8px 18px -12px rgba(30,70,40,.6);color:#163A24}
+.st-mock .wcard .deco{color:var(--water)}
+.st-mock .primary{background:var(--leaf);color:#fff;border-radius:16px}
+.st-mock .diary{background:#fff;border-radius:18px;box-shadow:0 8px 18px -12px rgba(22,32,42,.45)}
+.st-mock .diary-h span{color:#5F6A63}
+.st-mock .photos>div{border-radius:12px}
+.st-mock .del{color:var(--danger)}
+.st-mock .greet{color:#3C4A40}
+.st-mock .prow{background:#fff;border-radius:16px;box-shadow:0 6px 14px -10px rgba(22,32,42,.45)}
+.st-mock .prow .thumb{border-radius:14px}
+.st-mock .prow small{color:#5F6A63}
+.st-mock .prow small.due{color:var(--water);font-weight:700}
+.st-mock .toast{background:#1F2A24;color:#fff}
+
+/* ===== 2. WIREFRAME (anche Stato vuoto, Errore, Testo lungo) ===== */
+.st-wire{background:#fff;color:#222;font-family:var(--plain)}
+.st-wire .status{color:#555}
+.st-wire .tabbar{border-top:2px solid #BDBDBD;background:#fff}
+.st-wire .tab{color:#666}.st-wire .tab[aria-current]{color:#111;font-weight:700}
+.st-wire .tab[aria-current] .sq{background:#555;border-color:#555}
+.st-wire .hero-img{border-radius:0}
+.st-wire .primary,.st-wire button{border-radius:0}
+.st-wire .name{font-size:24px}
+.st-wire .wcard{border:2px solid #BDBDBD;background:#F2F2F2;margin-top:10px}
+.st-wire .wcard span{color:#444}
+.st-wire .primary{background:#3A3A3A;color:#fff}
+.st-wire .diary{border:2px solid #D6D6D6;padding:10px}
+.st-wire .diary-h span{color:#666}
+.st-wire .del{color:#222;text-decoration:underline;font-weight:400}
+.st-wire .greet{color:#333}
+.st-wire .prow{border-bottom:2px solid #E0E0E0;padding:8px 0;margin:0}
+.st-wire .prow small{color:#555}
+.st-wire .prow small.due{color:#111;font-weight:700}
+.st-wire .add{margin-top:16px}
+.st-wire .errbox{border:2px dashed #3A3A3A;background:#F2F2F2}
+.st-wire .errbox b::before{content:"!";display:inline-block;width:20px;height:20px;line-height:17px;text-align:center;border:2px solid #222;border-radius:50%;font-size:13px;margin-right:6px;vertical-align:1px}
+.st-wire .errbox button,.st-wire .emptybox button{border:2px solid #3A3A3A;background:#fff}
+.st-wire .emptybox{border:2px solid #D6D6D6}
+.st-wire .empty-page p{color:#555}
+.st-wire .toast{background:#3A3A3A;color:#fff;border-radius:4px}
+
+/* posizioni fisse: ogni pezzo ha x, y, larghezza e altezza scritti a mano */
+.fixed .body{overflow:hidden}
+.fixed .body>*{position:absolute;left:14px;width:248px;margin:0}
+.fixed .hero-img{top:0;height:110px}
+.fixed .name{z-index:2;top:118px;height:30px;font-size:22px;line-height:30px}
+.fixed .wcard{top:154px;height:58px;min-height:0;padding:6px 12px;white-space:nowrap}
+.fixed .primary{top:220px;height:48px;padding:0 12px;white-space:nowrap;overflow:hidden}
+.fixed .diary{top:278px;height:120px}
+.fixed .diary-h{white-space:nowrap}
+.fixed .del{top:404px;height:36px;padding:0;text-align:left;white-space:nowrap}
+
+/* ===== 3. MOCKUP TRAVESTITO: grigio, ma con tutte le decorazioni ===== */
+.st-fake{background:linear-gradient(180deg,#F7F7F7,#E4E4E4);color:#2A2A2A}
+.st-fake .top h1{font-family:"Didot","Bodoni 72",Georgia,"Times New Roman",serif;font-style:italic;font-weight:400;font-size:30px}
+.st-fake .top h1 .deco{color:#777;filter:drop-shadow(0 2px 2px rgba(0,0,0,.3))}
+.st-fake .hero-img{border-radius:28px;box-shadow:0 14px 28px -12px rgba(0,0,0,.45)}
+.st-fake .name{font-family:"Didot","Bodoni 72",Georgia,"Times New Roman",serif;font-style:italic;font-weight:400;font-size:34px}
+.st-fake .latin{font-family:Georgia,serif;color:#8A8A8A;letter-spacing:.04em}
+.st-fake .wcard{background:linear-gradient(135deg,#FFFFFF,#CFCFCF);border-radius:24px;box-shadow:0 10px 22px -10px rgba(0,0,0,.5);color:#333}
+.st-fake .wcard .deco{width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#B5B5B5);display:inline-grid;place-items:center;box-shadow:0 2px 6px rgba(0,0,0,.25);color:#555}
+.st-fake .primary{background:linear-gradient(180deg,#6A6A6A,#2E2E2E);color:#fff;border-radius:999px;box-shadow:0 12px 20px -8px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.35);letter-spacing:.06em;text-transform:uppercase;font-size:15px}
+.st-fake .diary{background:linear-gradient(180deg,#FFFFFF,#EDEDED);border-radius:24px;box-shadow:0 10px 22px -10px rgba(0,0,0,.45)}
+.st-fake .diary-h h3{font-family:Georgia,serif;font-style:italic;font-weight:400;font-size:20px}
+.st-fake .diary-h h3::after{content:" \2767";color:#A0A0A0}
+.st-fake .diary-h span{color:#999;font-style:italic;font-family:Georgia,serif}
+.st-fake .photos>div{border-radius:16px;box-shadow:0 4px 10px -4px rgba(0,0,0,.4)}
+.st-fake .del{color:#777;letter-spacing:.08em;text-transform:uppercase;font-size:12px}
+.st-fake .greet{font-family:Georgia,serif;font-style:italic;color:#6A6A6A}
+.st-fake .prow{background:linear-gradient(90deg,#FFFFFF,#E9E9E9);border-radius:22px;box-shadow:0 8px 16px -10px rgba(0,0,0,.5)}
+.st-fake .prow .thumb{border-radius:50%;box-shadow:0 3px 8px rgba(0,0,0,.3)}
+.st-fake .prow b{font-family:Georgia,serif;font-weight:400;font-size:19px}
+.st-fake .prow small{color:#8A8A8A}
+.st-fake .prow small.due{color:#333;font-weight:700}
+.st-fake .tabbar{background:rgba(255,255,255,.8);margin:0 12px 12px;border-radius:24px;box-shadow:0 10px 24px -10px rgba(0,0,0,.5);padding:6px 4px 8px}
+.st-fake .tab{color:#8A8A8A}.st-fake .tab[aria-current]{color:#111;font-weight:700}
+.st-fake .toast{background:linear-gradient(180deg,#555,#222);color:#fff;border-radius:999px;text-align:center}
+
+/* ===== 4. GERARCHIA: senza colore, immagini, icone decorative ===== */
+.st-hier{background:#fff;color:#222;font-family:var(--plain)}
+.st-hier .body{display:flex;flex-direction:column;gap:20px;padding-top:16px}
+.st-hier .top h1{font-size:22px}
+.ar{position:relative;border:2px solid #444;padding:20px 14px 12px}
+.ar .n{position:absolute;top:-13px;left:10px;background:#222;color:#fff;border-radius:999px;font-size:13px;font-weight:700;padding:3px 10px}
+.ar.a2 .n{background:#555}.ar.a3 .n{background:#888}
+.ar.free{border:2px dashed #BBB}.ar.free .n{background:#fff;color:#777;border:2px dashed #BBB;padding:1px 8px}
+.h-big{font-size:26px;font-weight:700;line-height:1.15}
+.h-mid{font-size:17px;margin-top:4px}
+.h-sm{font-size:14px;color:#555}
+.h-btn{background:#3A3A3A;color:#fff;font-weight:700;text-align:center;padding:14px}
+.h-row{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid #E2E2E2;font-size:16px}
+.h-row:last-child{border:0}
+.h-row.first{font-weight:700}
+.st-hier .tabbar{border-top:2px dashed #BBB;margin:0 0 0;position:relative;color:#888}
+.st-hier .tabbar::before{content:"navigazione · senza numero";position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:#fff;font-size:12px;padding:0 8px;color:#888}
+
+/* tocco: il cerchio che si vede sul proiettore */
+.ripple{position:fixed;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;border:3px solid var(--water);pointer-events:none;z-index:50;animation:rip .45s ease-out forwards}
+@keyframes rip{from{transform:scale(.4);opacity:1}to{transform:scale(1.3);opacity:0}}
+
+/* ---------- pannello del docente ---------- */
+.panel h2{font-size:15px;color:var(--muted);margin:0 0 10px;font-weight:700}
+.panel section{margin-bottom:22px}
+.title{font-size:34px;line-height:1.1;margin:0 0 6px;letter-spacing:-.02em}
+.lead{margin:0 0 18px;color:var(--muted);max-width:60ch}
+.seg{display:flex;flex-wrap:wrap;gap:8px}
+.seg button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 16px;font-weight:700}
+.seg button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+.seg button kbd{font:inherit;font-size:12px;opacity:.6;margin-right:6px}
+.seg button:disabled{opacity:.45;cursor:default}
+.sub{margin-top:10px}
+.sub button{padding:6px 14px;font-size:15px}
+.screens{display:inline-flex;border:1px solid var(--line);background:#fff;border-radius:14px;padding:4px;margin-bottom:10px;flex-wrap:wrap}
+.screens button{border:0;background:transparent;border-radius:10px;padding:8px 14px;font-weight:700;font-size:15px}
+.screens button[aria-pressed="true"]{background:var(--leaf-soft);color:var(--leaf)}
+.switch{display:flex;align-items:center;gap:12px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 16px 7px 8px;font-weight:700;margin-top:10px}
+.switch .knob{width:46px;height:26px;border-radius:999px;background:#B9C4CA;position:relative;flex:none;transition:background .15s}
+.switch .knob::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .15s}
+.switch[aria-checked="true"]{border-color:var(--ink)}
+.switch[aria-checked="true"] .knob{background:var(--leaf)}
+.switch[aria-checked="true"] .knob::after{left:23px}
+
+.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px 20px}
+.card .tag{display:inline-block;font-size:13px;font-weight:700;color:var(--water);background:var(--water-soft);border-radius:999px;padding:2px 10px;margin-bottom:6px}
+.card h3{font-size:24px;margin:0 0 12px;letter-spacing:-.01em}
+.card h4{font-size:14px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:14px 0 6px}
+.card ul{margin:0;padding-left:20px}
+.card li{margin-bottom:4px}
+.card p{margin:0}
+.ask{background:var(--leaf-soft);border-radius:12px;padding:10px 14px;font-weight:700;color:#1E4A30}
+.reset{border:0;background:transparent;color:var(--water);font-weight:700;padding:6px 0;text-decoration:underline;text-underline-offset:3px}
+.hint{font-size:14px;color:var(--muted);margin:8px 0 0}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<main class="stage">
+  <div class="phones" id="phones"></div>
+
+  <div class="panel">
+    <h1 class="title">Vaso: la stessa schermata, disegnata in modi diversi</h1>
+    <p class="lead">Scegliete la schermata e la vista, poi guardate cosa resta e cosa sparisce. In teoria si usa «Le mie piante»; la scheda del Basilico è il materiale dell'Esercizio 1.</p>
+
+    <section>
+      <h2>Lezione 7 · Wireframe</h2>
+      <div class="screens" id="screens"></div>
+      <div class="seg" id="views7"></div>
+    </section>
+
+    <section>
+      <h2>Lezione 8 · Stati e testi veri</h2>
+      <div class="seg" id="views8"></div>
+      <div class="seg sub" id="subEmpty"></div>
+      <button class="switch" id="longSwitch" role="switch" aria-checked="false"><span class="knob" aria-hidden="true"></span>Testo lungo il doppio</button>
+    </section>
+
+    <section aria-live="polite">
+      <div class="card" id="card"></div>
+    </section>
+
+    <button class="reset" id="reset">Ricomincia (il basilico torna da annaffiare)</button>
+    <p class="hint">Tasti: da 1 a 6 cambiano vista, S cambia schermata, T accende il testo lungo, R ricomincia.</p>
+  </div>
+</main>
+
+<script>
+/* ---------- icone ---------- */
+const I={
+  leaf:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19c0-8 5-13 14-14 0 9-5 14-13 14"/><path d="M5 19l7-7"/></svg>',
+  bell:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/></svg>',
+  book:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 21V5"/></svg>',
+  user:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>',
+  back:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
+  drop:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></svg>',
+  pot:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14l-2 9H7z"/><path d="M12 12V7"/><path d="M12 8c-1-3-4-4-6-3 1 3 4 4 6 3zM12 9c1-3 4-4 6-3-1 3-4 4-6 3z"/></svg>'
+};
+const X='<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0L100 100M100 0L0 100" stroke="#9A9A9A" stroke-width="1.5" vector-effect="non-scaling-stroke"/></svg>';
+const xbox=(w)=>`<div class="xbox" role="img" aria-label="Segnaposto immagine">${X}${w?`<em>${w}</em>`:''}</div>`;
+const deco=(icon,style)=>(style==='mock'||style==='fake')?`<span class="deco" aria-hidden="true">${I[icon]}</span>`:'';
+
+/* ---------- illustrazioni (SVG inline) ---------- */
+const LEAVES=[[150,70,-30,1],[118,88,-60,.9],[184,86,40,.95],[136,52,-10,.8],[168,50,20,.85],[104,110,-75,.75],[198,108,70,.8],[150,40,0,.7],[126,112,-40,.7],[176,112,35,.7]];
+let uid=0;
+function basil(gray){
+  const id='g'+(uid++);
+  if(!gray)return `<svg viewBox="0 0 300 180" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Foto del basilico"><rect width="300" height="180" fill="#E3EFE6"/><circle cx="252" cy="36" r="22" fill="#F7E3A6"/><path d="M0 150h300v30H0z" fill="#D6E6D9"/><path d="M150 140V78M150 110l-24-18M150 100l26-16M150 90l-12-30M150 88l14-32" stroke="#3E7D4F" stroke-width="4" fill="none" stroke-linecap="round"/>${LEAVES.map(([x,y,r,s],i)=>`<ellipse cx="${x}" cy="${y}" rx="${18*s}" ry="${11*s}" transform="rotate(${r} ${x} ${y})" fill="${['#4C9A5E','#5DAE6C','#3F8A52'][i%3]}"/>`).join('')}<path d="M112 132h76l-9 44h-58z" fill="#C8693F"/><rect x="106" y="126" width="88" height="14" rx="4" fill="#B65A33"/></svg>`;
+  /* la foto grigia "disegnata foglia per foglia" del mockup travestito */
+  return `<svg viewBox="0 0 300 180" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Disegno grigio molto dettagliato del basilico"><defs><linearGradient id="${id}b" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FAFAFA"/><stop offset="1" stop-color="#C4C4C4"/></linearGradient><radialGradient id="${id}l" cx=".35" cy=".35" r=".8"><stop offset="0" stop-color="#A0A0A0"/><stop offset="1" stop-color="#3E3E3E"/></radialGradient><linearGradient id="${id}p" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5A5A5A"/><stop offset=".45" stop-color="#B5B5B5"/><stop offset="1" stop-color="#4A4A4A"/></linearGradient></defs><rect width="300" height="180" fill="url(#${id}b)"/><circle cx="250" cy="34" r="40" fill="#fff" opacity=".6"/><ellipse cx="150" cy="174" rx="70" ry="7" fill="#000" opacity=".22"/><path d="M150 140V78M150 110l-24-18M150 100l26-16M150 90l-12-30M150 88l14-32" stroke="#4A4A4A" stroke-width="4" fill="none" stroke-linecap="round"/>${LEAVES.map(([x,y,r,s])=>`<g transform="rotate(${r} ${x} ${y})"><ellipse cx="${x}" cy="${y}" rx="${18*s}" ry="${11*s}" fill="url(#${id}l)" stroke="#2A2A2A" stroke-width=".6"/><path d="M${x-16*s} ${y}H${x+16*s}M${x-6*s} ${y}l-4 ${-6*s}M${x-6*s} ${y}l-4 ${6*s}M${x+4*s} ${y}l-4 ${-6*s}M${x+4*s} ${y}l-4 ${6*s}" stroke="#D0D0D0" stroke-width=".7" fill="none"/></g>`).join('')}<path d="M112 132h76l-9 44h-58z" fill="url(#${id}p)"/><rect x="106" y="126" width="88" height="14" rx="5" fill="url(#${id}p)"/><g fill="#fff" opacity=".85"><path d="M40 40l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/><path d="M70 22l1.3 4 4 1.3-4 1.3-1.3 4-1.3-4-4-1.3 4-1.3z"/></g></svg>`;
+}
+/* piccola pianta per elenco e diario: k = tipo, gray = travestito */
+function mini(k,gray){
+  const pal=gray?[['#5A5A5A','#E2E2E2','#8A8A8A'],['#4A4A4A','#D4D4D4','#7A7A7A'],['#666','#DADADA','#909090']][k%3]
+                :[['#4C9A5E','#E3EFE6','#C8693F'],['#2F7A54','#DCEDE2','#9C7A5B'],['#5E8C3E','#EAEDE4','#B0603A']][k%3];
+  const shape=[`<ellipse cx="17" cy="20" rx="7" ry="4.5" fill="${pal[0]}" transform="rotate(-30 17 20)"/><ellipse cx="27" cy="18" rx="7" ry="4.5" fill="${pal[0]}" transform="rotate(30 27 18)"/><ellipse cx="22" cy="13" rx="5" ry="3.5" fill="${pal[0]}"/>`,
+    `<path d="M22 28C10 26 8 14 16 9c2 6 6 8 6 19zM22 28c12-2 14-14 6-19-2 6-6 8-6 19z" fill="${pal[0]}"/>`,
+    `<circle cx="22" cy="14" r="9" fill="${pal[0]}"/><path d="M22 22v6" stroke="${pal[2]}" stroke-width="2"/>`][k%3];
+  return `<svg viewBox="0 0 44 44" aria-hidden="true"><rect width="44" height="44" fill="${pal[1]}"/>${shape}<path d="M14 28h16l-2 12H16z" fill="${pal[2]}"/></svg>`;
+}
+/* foglioline disegnate sullo sfondo della card dell'annaffiatura (decorazione) */
+function leaves(gray){
+  const c=gray?['#9E9E9E','#BDBDBD']:['#7DB38A','#A9D2B2'];
+  return `<svg class="leaves" viewBox="0 0 110 84" aria-hidden="true"><g opacity=".8"><ellipse cx="78" cy="22" rx="16" ry="8" fill="${c[0]}" transform="rotate(-35 78 22)"/><ellipse cx="96" cy="46" rx="14" ry="7" fill="${c[1]}" transform="rotate(25 96 46)"/><ellipse cx="62" cy="54" rx="12" ry="6" fill="${c[1]}" transform="rotate(-10 62 54)"/><path d="M60 70C70 50 84 30 104 10" stroke="${c[0]}" stroke-width="2" fill="none"/></g></svg>`;
+}
+
+/* ---------- contenuti ---------- */
+const TXT={
+  short:{name:'Basilico',latin:'Ocimum basilicum',lastT:'Ultima annaffiatura',last:'lunedì 12 ottobre',lastOk:'oggi, giovedì 15 ottobre',btn:'Segna annaffiatura',diary:'Diario',photos:'4 foto',del:'Elimina pianta'},
+  long:{name:'Basilico genovese del balcone grande',latin:'Ocimum basilicum, varietà genovese',lastT:'Ultima annaffiatura registrata',last:'lunedì 12 ottobre, alle otto e mezza di mattina',lastOk:'oggi, giovedì 15 ottobre, proprio adesso',btn:'Segna l\'annaffiatura di oggi del basilico',diary:'Diario della pianta con le foto',photos:'4 foto in tutto',del:'Elimina la pianta, le sue foto e tutto il suo diario'}
+};
+const PLANTS=[['Basilico','Da annaffiare oggi',true],['Monstera','Fra 5 giorni'],['Ficus','Fra 2 giorni'],['Rosmarino','Fra 4 giorni']];
+const SCREENS={piante:'Le mie piante',basilico:'Scheda della pianta – Basilico'};
+const VIEWS={
+  mockup:{n:1,label:'Mockup',les:7},
+  wireframe:{n:2,label:'Wireframe',les:7},
+  travestito:{n:3,label:'Mockup travestito',les:7},
+  gerarchia:{n:4,label:'Gerarchia',les:7},
+  vuoto:{n:5,label:'Stato vuoto',les:8},
+  errore:{n:6,label:'Errore',les:8}
+};
+const EMPTY={piante:'Nessuna pianta',diario:'Diario vuoto'};
+
+/* testi del pannello: cosa guardare, cosa dire, domanda */
+const NOTES={
+  'piante.mockup':{tag:'Lezione 7 · Le mie piante · vista 1',title:'Mockup: la schermata finita',
+    look:['Colore, foto delle piante, l\'icona del vaso accanto al titolo, card con ombre.','Il basilico è in evidenza: «Da annaffiare oggi».','Tutto è già deciso: il verde, il carattere, la forma delle card.'],
+    say:'Questo è un mockup: «Le mie piante» come la vedrà chi scarica Vaso. Per arrivarci servono ore di scelte di aspetto. Se l\'ordine è sbagliato, quelle ore si buttano: per questo prima si fa il wireframe.',
+    ask:'Cosa vi serve davvero, qui, per annaffiare il basilico?'},
+  'piante.wireframe':{tag:'Lezione 7 · Le mie piante · vista 2',title:'Wireframe: in fretta e male, apposta',
+    look:['Solo grigi. Le foto delle piante sono rettangoli con una X.','I testi sono veri: «oggi una pianta ha sete», «Aggiungi una pianta».','L\'icona del vaso accanto al titolo è sparita: abbelliva. Le icone della barra sono quadrati con la loro parola: si toccano.'],
+    say:'Stessa schermata, senza decorazioni. Si disegna in pochi minuti e si butta senza dispiacere. Davanti a un wireframe si discute di cosa c\'è e in che ordine, non di quale verde usare. Le parole restano vere: «Bottone» non dice cosa fa.',
+    ask:'Nella seconda manca qualcosa che vi serve per annaffiare il basilico?'},
+  'piante.travestito':{tag:'Lezione 7 · Le mie piante · vista 3',title:'Mockup travestito: grigio, ma non è un wireframe',
+    look:['Ombre, angoli molto arrotondati, sfumature, tanti grigi diversi usati come colori.','Icone disegnate: il vaso accanto al titolo, la goccia, le foto ritoccate.','Un carattere elegante in corsivo per il titolo e i nomi.'],
+    say:'Sembra un wireframe perché è grigio, ma dentro ci sono già decisioni di aspetto: è un mockup travestito da wireframe. Costa molto più tempo, ci si affeziona, e chi lo guarda vi parla delle ombre invece che dell\'ordine.',
+    ask:'È un wireframe? E se lo mostrate a un compagno, di cosa vi parlerà per prima cosa?'},
+  'piante.gerarchia':{tag:'Lezione 7 · Le mie piante · vista 4',title:'Gerarchia: l\'ordine regge anche in grigio',
+    look:['Tolti colore, immagini e icone decorative: restano testo, dimensione, spazio e posizione.','1 la frase «oggi una pianta ha sete» · 2 l\'elenco · 3 il bottone in basso.','La barra in basso non ha numero: è la navigazione, uguale in ogni schermata.'],
+    say:'Anche senza colore l\'ordine si legge: lo fanno la dimensione, il peso del testo, lo spazio e la posizione. Questo ordine è la gerarchia. Se in grigio non si capisce cosa viene prima, il colore non lo salverà.',
+    ask:'Cosa leggete per primo, per secondo, per terzo?'},
+  'basilico.mockup':{tag:'Lezione 7 · Basilico · Esercizio 1',title:'Mockup: la scheda ricca apposta',
+    look:['Dall\'alto: indietro, foto, nome, nome latino, card verde con le foglioline, ultima annaffiatura con la goccia.','Poi «Segna annaffiatura», il diario con le foto, «Elimina pianta», la barra in basso.','Ombre e angoli arrotondati sulle card.'],
+    say:'Questa schermata è ricca apposta: è la stessa per tutti i gruppi. Per ogni elemento la domanda è una sola: se lo tolgo, si capisce ancora cosa è la schermata e cosa si può fare? Se sì, fuori.',
+    ask:'Quanti elementi togliereste? E la schermata si capirebbe ancora?'},
+  'basilico.wireframe':{tag:'Lezione 7 · Basilico · fine dell\'Esercizio 1',title:'Wireframe: solo la struttura',
+    look:['Restano: indietro, foto, nome, ultima annaffiatura, «Segna annaffiatura», diario, «Elimina pianta», barra.','Tolti: nome latino, sfondo verde con le foglioline, goccia, ombre e angoli.','Il diario è un segnaposto: tre rettangoli con la X.'],
+    say:'Ecco il wireframe della stessa scheda. Ha tolto le decorazioni e la schermata si capisce lo stesso: si vede ancora quando è stata annaffiata e come segnarlo.',
+    ask:'Il vostro è più vicino a questo o al travestito? Cosa avete tenuto che lui ha tolto?'},
+  'basilico.travestito':{tag:'Lezione 7 · Basilico · fine dell\'Esercizio 1',title:'Mockup travestito: ha tolto solo il colore',
+    look:['Ci sono ancora tutte le decorazioni, scolorite: nome latino, sfondo sfumato con le foglioline, goccia.','Ombre profonde, angoli molto arrotondati, tanti grigi diversi.','Il nome in corsivo elegante, il bottone a pillola con la sfumatura.'],
+    say:'Il travestito non ha tolto niente: ha tolto solo il colore. Il wireframe vero ha tolto, e si capisce lo stesso. Il grigio da solo non fa un wireframe.',
+    ask:'Contate le decisioni di aspetto rimaste: quante ne trovate?'},
+  'basilico.gerarchia':{tag:'Lezione 7 · Basilico · vista 4',title:'Gerarchia: lo scheletro della scheda',
+    look:['Tre gruppi numerati: 1 nome e ultima annaffiatura · 2 «Segna annaffiatura» · 3 diario.','«Elimina pianta» non ha numero: è un\'azione rara, piccola e in basso.','La foto è tolta: l\'ordine si legge lo stesso.'],
+    say:'Lo scheletro della scheda regge anche in grigio: prima cosa e quando, poi l\'azione, poi la storia. Se togliendo tutto non si capisse più cosa conta, il colore non lo salverebbe.',
+    ask:'Scambiereste il 2 con il 3? Cosa succede a chi apre la scheda solo per annaffiare?'},
+  vuoto:{tag:'Lezione 8 · stato',title:'Stato vuoto: la schermata senza dati',
+    look:['La schermata non resta bianca: c\'è un messaggio e un pulsante.','Tre pezzi: cosa succede, perché conviene agire, l\'azione per farlo.','È disegnato in wireframe: anche gli stati si fanno in grigio.','Provate anche «Diario vuoto»: un vuoto dentro una schermata piena.'],
+    say:'Lo stato vuoto è la prima cosa che vede chi installa l\'app. Se è bianco, l\'app sembra rotta. Nel wireframe si disegna come una schermata a sé: un messaggio chiaro e un\'azione che porta fuori dal vuoto.',
+    ask:'Cosa vede Marta il primo giorno, se nessuno ha disegnato questa schermata?'},
+  errore:{tag:'Lezione 8 · stato',title:'Errore: il salvataggio non è riuscito',
+    look:['Il messaggio sta sotto il bottone che ha fallito, non in una finestra a parte.','Dice cosa è successo, che nulla è perso e cosa fare.','«Riprova» è un bottone vero: toccatelo.'],
+    say:'Ogni azione che salva qualcosa può fallire, quindi l\'errore si disegna. Con parole vere: «Errore 503» non aiuta nessuno, «Non siamo riusciti a salvare» sì. Nel wireframe basta un riquadro tratteggiato e un punto esclamativo: niente rosso.',
+    ask:'Cosa fa Marta se il messaggio dice solo «Qualcosa è andato storto»?'},
+  lungo:{tag:'Lezione 8 · prova',title:'Testo lungo il doppio: regge o si rompe?',
+    look:['A sinistra i pezzi sono in auto layout: il testo va a capo e la schermata si allunga.','A destra ogni pezzo ha una posizione fissa: il nome copre la riga sotto, il bottone taglia la frase, «Elimina» esce dal bordo.','Stessi testi, stessa larghezza: cambia solo come è costruita la schermata.'],
+    say:'I testi veri cambiano: un nome scelto dall\'utente, una traduzione, un carattere più grande per chi vede poco. Raddoppiare il testo è la prova più veloce. Con l\'auto layout il wireframe regge; con le posizioni fisse si rompe.',
+    ask:'Nel vostro wireframe, cosa succede se il nome è lungo il doppio? Provate adesso.'}
+};
+
+/* ---------- stato ---------- */
+const S={screen:'piante',view:'mockup',empty:'piante',long:false,watered:false,error:true,toast:null};
+let toastTimer;
+function reset(){S.watered=false;S.error=true;S.toast=null;clearTimeout(toastTimer);render()}
+
+/* ---------- pezzi comuni ---------- */
+function status(){return `<div class="status"><span>9:41</span><span>●●● 82%</span></div>`}
+function topBack(){return `<div class="top"><button class="icon-btn" aria-label="Indietro, a Le mie piante" data-a="nav">${I.back}</button></div>`}
+function topTitle(style){return `<div class="top"><h1>Le mie piante${deco('pot',style)}</h1></div>`}
+function tabbar(style){
+  const tabs=[['leaf','Piante'],['bell','Promemoria'],['book','Impara'],['user','Profilo']];
+  return `<nav class="tabbar" aria-label="Barra in basso">${tabs.map(([ic,l],i)=>`<button class="tab" ${i===0?'aria-current="page"':''} data-a="nav">${style==='wire'||style==='hier'?'<span class="sq" aria-hidden="true"></span>':I[ic]}<span>${l}</span></button>`).join('')}</nav>`;
+}
+
+/* ---------- «Scheda della pianta – Basilico» ----------
+   Ordine come nella tabella V1 di case-study.md.
+   Nel Wireframe restano solo gli elementi S; nel Mockup travestito
+   restano tutti i D, scoloriti. */
+function basilico(style,o){
+  const t=o.long?TXT.long:TXT.short;
+  const keepD=style==='mock'||style==='fake';
+  const photo=style==='mock'?basil(false):style==='fake'?basil(true):xbox('foto');
+  const ph=[['15 ott',0],['8 ott',1],['1 ott',2]];
+  const photos=ph.map(([d,k])=>`<div>${style==='wire'?xbox():mini(0,style==='fake')}${style==='wire'?'':`<small>${d}</small>`}</div>`).join('');
+  const err=o.showError?`<div class="errbox" role="alert"><b>Non siamo riusciti a salvare l'annaffiatura</b><p>Controlla la connessione. L'annaffiatura non è persa: tocca «Riprova».</p><button data-a="retry">Riprova</button></div>`:'';
+  const diary=o.emptyDiary
+    ?`<div class="diary emptybox"><b>Il diario è vuoto</b><p>Scatta una foto ogni settimana: vedrai come cresce il basilico.</p><button data-a="nav">Aggiungi la prima foto</button></div>`
+    :`<div class="diary"><div class="diary-h"><h3>${t.diary}</h3><span>${t.photos}</span></div><div class="photos">${photos}</div></div>`;
+  return status()+topBack()+`<div class="body">
+    <div class="hero-img">${photo}</div>
+    <h2 class="name">${t.name}</h2>
+    ${keepD?`<p class="latin">${t.latin}</p>`:''}
+    <div class="wcard">${keepD?leaves(style==='fake'):''}<div class="txt"><b>${t.lastT}</b><span>${S.watered?t.lastOk:t.last}${deco('drop',style)}</span></div></div>
+    <button class="primary" data-a="water">${t.btn}</button>
+    ${err}
+    ${diary}
+    <button class="del" data-a="nav">${t.del}</button>
+  </div>`+tabbar(style);
+}
+
+/* ---------- «Le mie piante» ---------- */
+function piante(style){
+  const thumb=k=>style==='wire'?xbox():mini(k,style==='fake');
+  return status()+topTitle(style)+`<div class="body">
+    <p class="greet">Ciao Marta, oggi una pianta ha sete.</p>
+    ${PLANTS.map(([n,s,due],k)=>`<button class="prow" data-a="nav"><span class="thumb">${thumb(k)}</span><span><b>${n}</b><small class="${due?'due':''}">${due?deco('drop',style):''}${s}</small></span></button>`).join('')}
+    <button class="primary add" data-a="nav">Aggiungi una pianta</button>
+  </div>`+tabbar(style);
+}
+
+/* ---------- Gerarchia: tolti colore, immagini e icone decorative ---------- */
+function gerarchia(screen){
+  if(screen==='piante')return status()+`<div class="top"><h1>Le mie piante</h1></div><div class="body">
+    <div class="ar a1"><span class="n">1 · chi ha sete</span><div class="h-big">Ciao Marta, oggi una pianta ha sete.</div></div>
+    <div class="ar a2"><span class="n">2 · le piante</span>${PLANTS.map(([n,s,d])=>`<div class="h-row ${d?'first':''}"><span>${n}</span><span>${s}</span></div>`).join('')}</div>
+    <div class="ar a3"><span class="n">3 · aggiungere</span><div class="h-btn">Aggiungi una pianta</div></div>
+  </div>`+tabbar('hier');
+  const t=TXT.short;
+  return status()+topBack()+`<div class="body">
+    <div class="ar a1"><span class="n">1 · cosa e quando</span><div class="h-big">${t.name}</div><div class="h-mid">${t.lastT}: ${S.watered?t.lastOk:t.last}</div></div>
+    <div class="ar a2"><span class="n">2 · l'azione</span><div class="h-btn">${t.btn}</div></div>
+    <div class="ar a3"><span class="n">3 · la storia</span><div class="h-mid" style="margin:0">${t.diary}</div><div class="h-sm">${t.photos}</div></div>
+    <div class="ar free"><span class="n">dopo · azione rara</span><div class="h-sm">${t.del}</div></div>
+  </div>`+tabbar('hier');
+}
+
+/* Stato vuoto: «Le mie piante» senza piante */
+function vuotoPiante(){
+  return status()+topTitle('wire')+`<div class="body"><div class="empty-page">
+    <div class="ph">${xbox()}</div>
+    <h2>Ancora nessuna pianta</h2>
+    <p>Aggiungi la prima: ti diremo noi quando annaffiarla.</p>
+    <button class="primary" data-a="nav">Aggiungi una pianta</button>
+  </div></div>`+tabbar('wire');
+}
+
+function screenHTML(style,o){
+  let h;
+  if(style==='hier')h=gerarchia(o.screen);
+  else if(o.emptyPage)h=vuotoPiante();
+  else if(o.screen==='piante')h=piante(style);
+  else h=basilico(style,o);
+  if(S.toast)h+=`<div class="toast" role="status">${S.toast}</div>`;
+  return h;
+}
+function phone(style,o,cap,cls=''){
+  return `<div class="device ${cls?'pair':''}">${cap||''}<div class="phone ${cls}"><div class="screen st-${style} ${o.fixed?'fixed':''}" data-screen>${screenHTML(style,o)}</div></div></div>`;
+}
+
+/* ---------- disegno ---------- */
+function render(){
+  uid=0;
+  const ph=document.getElementById('phones');
+  if(S.long){
+    /* due telefoni: stessa scheda in wireframe, testo lungo il doppio */
+    ph.innerHTML=phone('wire',{screen:'basilico',long:true},'<div class="cap">Auto layout <i class="ok">regge</i></div>','small')
+               +phone('wire',{screen:'basilico',long:true,fixed:true},'<div class="cap">Posizioni fisse <i class="ko">si rompe</i></div>','small');
+  }else{
+    const v=S.view;
+    const style={mockup:'mock',wireframe:'wire',travestito:'fake',gerarchia:'hier',vuoto:'wire',errore:'wire'}[v];
+    const screen=VIEWS[v].les===7?S.screen:(v==='vuoto'&&S.empty==='piante'?'piante':'basilico');
+    const o={screen,showError:v==='errore'&&S.error,emptyPage:v==='vuoto'&&S.empty==='piante',emptyDiary:v==='vuoto'&&S.empty==='diario'};
+    ph.innerHTML=phone(style,o,'');
+    /* se c'è un errore o un diario vuoto, lo si porta in vista dentro il telefono */
+    const box=ph.querySelector('.errbox,.emptybox');
+    if(box){const body=box.closest('.body');body.scrollTop=box.offsetTop+box.offsetHeight-body.clientHeight+18}
+  }
+  renderPanel();
+}
+
+function renderPanel(){
+  const l7=!S.long&&VIEWS[S.view].les===7;
+  document.getElementById('screens').innerHTML=Object.entries(SCREENS).map(([k,x])=>`<button aria-pressed="${l7&&S.screen===k}" data-screen-id="${k}">${x}</button>`).join('');
+  const btn=(k,x)=>`<button aria-pressed="${!S.long&&S.view===k}" data-view="${k}"><kbd>${x.n}</kbd>${x.label}</button>`;
+  document.getElementById('views7').innerHTML=Object.entries(VIEWS).filter(([,x])=>x.les===7).map(([k,x])=>btn(k,x)).join('');
+  document.getElementById('views8').innerHTML=Object.entries(VIEWS).filter(([,x])=>x.les===8).map(([k,x])=>btn(k,x)).join('');
+  const sub=document.getElementById('subEmpty');
+  sub.hidden=!(S.view==='vuoto'&&!S.long);
+  sub.innerHTML=Object.entries(EMPTY).map(([k,x])=>`<button aria-pressed="${S.empty===k}" data-empty="${k}">${x}</button>`).join('');
+  document.getElementById('longSwitch').setAttribute('aria-checked',S.long);
+  const n=NOTES[S.long?'lungo':(l7?S.screen+'.'+S.view:S.view)];
+  document.getElementById('card').innerHTML=`<span class="tag">${n.tag}</span><h3>${n.title}</h3>
+    <h4>Cosa guardare</h4><ul>${n.look.map(x=>`<li>${x}</li>`).join('')}</ul>
+    <h4>Cosa dire</h4><p>${n.say}</p>
+    <h4>Domanda per la classe</h4><p class="ask">${n.ask}</p>`;
+}
+
+/* ---------- azioni dentro il telefono ---------- */
+function toast(msg){S.toast=msg;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{S.toast=null;render()},2200)}
+document.getElementById('phones').addEventListener('click',e=>{
+  const el=e.target.closest('[data-a]');if(!el)return;
+  ripple(e);
+  const a=el.dataset.a;
+  if(a==='water'){
+    if(S.view==='errore'&&!S.long){S.error=true;toast('Salvataggio non riuscito')}
+    else if(S.watered)toast('Già segnata oggi');
+    else{S.watered=true;toast('Annaffiatura segnata')}
+  }else if(a==='retry'){S.error=false;S.watered=true;toast('Annaffiatura salvata')}
+  else toast('Qui guardiamo solo questa schermata');
+  render();
+});
+document.querySelector('.panel').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.view)setView(b.dataset.view);
+  else if(b.dataset.screenId)setScreen(b.dataset.screenId);
+  else if(b.dataset.empty){S.empty=b.dataset.empty;render()}
+  else if(b.id==='longSwitch'){S.long=!S.long;reset()}
+  else if(b.id==='reset')reset();
+});
+function setView(v){S.view=v;S.long=false;reset()}
+function setScreen(s){S.screen=s;S.long=false;if(VIEWS[S.view].les!==7)S.view='mockup';reset()}
+document.addEventListener('keydown',e=>{
+  if(e.ctrlKey||e.metaKey||e.altKey)return;
+  const v=Object.keys(VIEWS).find(k=>String(VIEWS[k].n)===e.key);
+  if(v)setView(v);
+  else if(e.key==='s'||e.key==='S')setScreen(S.screen==='piante'?'basilico':'piante');
+  else if(e.key==='t'||e.key==='T'){S.long=!S.long;reset()}
+  else if(e.key==='r'||e.key==='R')reset();
+});
+function ripple(e){
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches||!e.clientX)return;
+  const d=document.createElement('div');d.className='ripple';d.style.left=e.clientX+'px';d.style.top=e.clientY+'px';
+  document.body.appendChild(d);setTimeout(()=>d.remove(),500);
+}
+reset();
+</script>
+</body>
+</html>
